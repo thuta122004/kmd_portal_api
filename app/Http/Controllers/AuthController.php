@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -18,6 +19,7 @@ class AuthController extends Controller
             'name'     => 'required|string|max:255',
             'email'    => 'required|string|email|max:255|unique:users|kmd_email',
             'password' => ['required', 'confirmed', Password::defaults()],
+            'role_id'  => 'required|exists:roles,id',
         ]);
 
         if ($validator->fails()) {
@@ -33,7 +35,11 @@ class AuthController extends Controller
                 'name'     => $request->name,
                 'email'    => $request->email,
                 'password' => Hash::make($request->password),
+                'role_id'  => $request->role_id,
+                'status'   => 'active',
             ]);
+
+            $user->load('role');
 
             $token = $user->createToken('register_token')->plainTextToken;
 
@@ -41,7 +47,14 @@ class AuthController extends Controller
                 'status'  => 'success',
                 'message' => 'User registered successfully',
                 'data'    => [
-                    'user'  => $user,
+                    'user'  => [
+                        'id'         => $user->id,
+                        'name'       => $user->name,
+                        'email'      => $user->email,
+                        'role_name'  => $user->role->name,
+                        'status'     => $user->status,
+                        'created_at' => $user->created_at->format('Y-m-d H:i:s'),
+                    ],
                     'token' => $token
                 ]
             ], 201);
