@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\SectionController;
 use App\Http\Controllers\SubjectController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -17,4 +18,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Subjects
     Route::patch('subjects/{id}/toggle', [SubjectController::class, 'toggleStatus']);
     Route::apiResource('subjects', SubjectController::class);
+
+    // Sections
+    Route::patch('sections/{id}/toggle', [SectionController::class, 'toggleStatus']);
+    Route::apiResource('sections', SectionController::class);
 });
