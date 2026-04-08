@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SectionController;
+use App\Http\Controllers\SectionSubjectUserController;
 use App\Http\Controllers\SubjectController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -22,4 +23,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Sections
     Route::patch('sections/{id}/toggle', [SectionController::class, 'toggleStatus']);
     Route::apiResource('sections', SectionController::class);
+
+    // Assignments (Section-Subject-User)
+    Route::patch('assignments/{id}/toggle', [SectionSubjectUserController::class, 'toggleStatus']);
+    Route::apiResource('assignments', SectionSubjectUserController::class);
 });
