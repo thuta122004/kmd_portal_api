@@ -11,18 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('section_subject_users', function (Blueprint $table) {
+        Schema::create('timetables', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('section_id')
-                ->constrained('sections')
+            $table->foreignId('section_assignment_id')
+                ->constrained('section_assignments')
                 ->onDelete('restrict');
-            $table->foreignId('subject_id')
-                ->constrained('subjects')
-                ->onDelete('restrict');
-            $table->foreignId('user_id')
-                ->constrained('users')
-                ->onDelete('restrict');
-            $table->boolean('is_primary')->default(true);
+            $table->enum('day_of_week', ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']);
+            $table->time('start_time');
+            $table->time('end_time');
+            $table->string('room_number')->nullable();
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
         });
@@ -33,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('section_subject_users');
+        Schema::dropIfExists('timetables');
     }
 };

@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\SectionSubjectUser;
+use App\Models\SectionAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
 
-class SectionSubjectUserController extends Controller
+class SectionAssignmentController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = SectionSubjectUser::query()->with(['section', 'subject', 'user']);
+        $query = SectionAssignment::query()->with(['section', 'subject', 'user']);
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
@@ -31,7 +31,7 @@ class SectionSubjectUserController extends Controller
 
         return response()->json([
             'status'  => 'success',
-            'message' => 'Assignments retrieved successfully',
+            'message' => 'Section Assignments retrieved successfully',
             'data'    => [
                 'assignments' => $assignments
             ]
@@ -55,7 +55,7 @@ class SectionSubjectUserController extends Controller
             ], 422);
         }
 
-        $assignment = SectionSubjectUser::create([
+        $assignment = SectionAssignment::create([
             'section_id' => $request->section_id,
             'subject_id' => $request->subject_id,
             'user_id'    => $request->user_id,
@@ -84,18 +84,18 @@ class SectionSubjectUserController extends Controller
 
     public function show($id): JsonResponse
     {
-        $assignment = SectionSubjectUser::with(['section', 'subject', 'user'])->find($id);
+        $assignment = SectionAssignment::with(['section', 'subject', 'user'])->find($id);
 
         if (!$assignment) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Assignment not found'
+                'message' => 'Assignment not found for this Section'
             ], 404);
         }
 
         return response()->json([
             'status'  => 'success',
-            'message' => 'Assignment details retrieved',
+            'message' => 'Section Assignment details retrieved',
             'data'    => [
                 'assignment' => [
                     'id'           => $assignment->id,
@@ -112,12 +112,12 @@ class SectionSubjectUserController extends Controller
 
     public function toggleStatus($id): JsonResponse
     {
-        $assignment = SectionSubjectUser::find($id);
+        $assignment = SectionAssignment::find($id);
 
         if (!$assignment) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Assignment not found'
+                'message' => 'Assignment not found for this Section'
             ], 404);
         }
 
@@ -126,7 +126,7 @@ class SectionSubjectUserController extends Controller
 
         return response()->json([
             'status'  => 'success',
-            'message' => "Assignment status updated to {$assignment->status}",
+            'message' => "Section Assignment status updated to {$assignment->status}",
             'data'    => [
                 'assignment' => [
                     'id'         => $assignment->id,
