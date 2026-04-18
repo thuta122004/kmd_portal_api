@@ -81,7 +81,7 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::with('role')->where('email', $request->email)->first();
 
         if (!$user) {
             return response()->json([
@@ -103,7 +103,14 @@ class AuthController extends Controller
             'status'  => 'success',
             'message' => 'Logged in successfully',
             'data'    => [
-                'user'  => $user,
+                'user'  => [
+                    'id'         => $user->id,
+                    'name'       => $user->name,
+                    'email'      => $user->email,
+                    'role_name'  => $user->role->name ?? null,
+                    'status'     => $user->status,
+                    'created_at' => $user->created_at->format('Y-m-d H:i:s'),
+                ],
                 'token' => $token
             ]
         ], 200);

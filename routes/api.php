@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\SectionAssignmentController;
 use App\Http\Controllers\SubjectController;
+use App\Http\Controllers\TimetableController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -24,7 +25,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('sections/{id}/toggle', [SectionController::class, 'toggleStatus']);
     Route::apiResource('sections', SectionController::class);
 
-    // Assignments (Section-Subject-User)
+    // Section Assignments
     Route::patch('section-assignments/{id}/toggle', [SectionAssignmentController::class, 'toggleStatus']);
     Route::apiResource('section-assignments', SectionAssignmentController::class);
+
+    // Timetables
+    Route::patch('timetables/{id}/toggle', [TimetableController::class, 'toggleStatus']);
+    Route::apiResource('timetables', TimetableController::class);
 });
