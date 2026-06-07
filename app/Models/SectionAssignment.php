@@ -9,7 +9,7 @@ class SectionAssignment extends Model
     protected $fillable = [
         'section_id',
         'subject_id',
-        'user_id',
+        'lecturer_id',
         'is_primary',
         'status',
     ];
@@ -20,7 +20,7 @@ class SectionAssignment extends Model
     public function subject() {
         return $this->belongsTo(Subject::class);
     }
-    public function user() {
-        return $this->belongsTo(User::class);
+    public function lecturer() {
+        return $this->belongsTo(Lecturer::class, 'lecturer_id');
     }
 }

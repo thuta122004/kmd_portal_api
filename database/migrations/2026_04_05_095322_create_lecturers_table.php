@@ -11,18 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('section_assignments', function (Blueprint $table) {
+        Schema::create('lecturers', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('section_id')
-                ->constrained('sections')
+            $table->foreignId('user_id')
+                ->unique() 
+                ->constrained('users')
                 ->onDelete('restrict');
-            $table->foreignId('subject_id')
-                ->constrained('subjects')
-                ->onDelete('restrict');
-            $table->foreignId('lecturer_id')
-                ->constrained('lecturers')
-                ->onDelete('restrict');
-            $table->boolean('is_primary')->default(true);
+            $table->string('employee_id')->unique()->nullable();
+            $table->string('department')->nullable();
+            $table->string('qualification')->nullable();
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
         });
@@ -33,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('section_assignments');
+        Schema::dropIfExists('lecturers');
     }
 };

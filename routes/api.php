@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\LecturerController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\SectionAssignmentController;
 use App\Http\Controllers\SubjectController;
@@ -24,6 +25,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Sections
     Route::patch('sections/{id}/toggle', [SectionController::class, 'toggleStatus']);
     Route::apiResource('sections', SectionController::class);
+
+    // Lecturers
+    Route::patch('lecturers/{id}/toggle', [LecturerController::class, 'toggleStatus']);
+    Route::apiResource('lecturers', LecturerController::class);
 
     // Section Assignments
     Route::patch('section-assignments/{id}/toggle', [SectionAssignmentController::class, 'toggleStatus']);

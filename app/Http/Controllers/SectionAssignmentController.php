@@ -12,7 +12,7 @@ class SectionAssignmentController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = SectionAssignment::query()->with(['section', 'subject', 'user']);
+        $query = SectionAssignment::query()->with(['section', 'subject', 'lecturer.user']);
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
@@ -20,13 +20,13 @@ class SectionAssignmentController extends Controller
 
         $assignments = $query->get()->map(function ($item) {
             return [
-                'id'           => $item->id,
-                'section_name' => $item->section->name ?? null,
-                'subject_name' => $item->subject->name ?? null,
-                'lecturer_name'    => $item->user->name ?? null,
-                'is_primary'   => (bool) $item->is_primary,
-                'status'       => $item->status,
-                'created_at'   => $item->created_at->format('Y-m-d H:i:s'),
+                'id'            => $item->id,
+                'section_name'  => $item->section->name,
+                'subject_name'  => $item->subject->name,
+                'lecturer_name' => $item->lecturer->user->name,
+                'is_primary'    => (bool) $item->is_primary,
+                'status'        => $item->status,
+                'created_at'    => $item->created_at->format('Y-m-d H:i:s'),
             ];
         });
 
@@ -42,23 +42,21 @@ class SectionAssignmentController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'section_id' => 'required|exists:sections,id',
-            'subject_id' => 'required|exists:subjects,id',
-            'user_id'    => [
+            'section_id'  => 'required|exists:sections,id',
+            'subject_id'  => 'required|exists:subjects,id',
+            'lecturer_id' => [
                 'required',
-                Rule::exists('users', 'id')->where(function ($query) {
-                    $query->where('role_id', 4);
-                }),
+                'exists:lecturers,id',
                 Rule::unique('section_assignments')->where(function ($query) use ($request) {
                     return $query->where('section_id', $request->section_id)
                                 ->where('subject_id', $request->subject_id)
-                                ->where('user_id', $request->user_id);
+                                ->where('lecturer_id', $request->lecturer_id);
                 }),
             ],
-            'is_primary' => 'boolean'
+            'is_primary'  => 'boolean'
         ], [
-            'user_id.exists' => 'The selected user is invalid or does not have the required permissions.',
-            'user_id.unique' => 'This lecturer is already assigned to this subject in this section.'
+            'lecturer_id.exists' => 'The selected lecturer is invalid.',
+            'lecturer_id.unique' => 'This lecturer is already assigned to this subject in this section.'
         ]);
 
         if ($validator->fails()) {
@@ -69,28 +67,45 @@ class SectionAssignmentController extends Controller
             ], 422);
         }
 
+        if ($request->input('is_primary', true)) {
+            $primaryExists = SectionAssignment::where('section_id', $request->section_id)
+                ->where('subject_id', $request->subject_id)
+                ->where('is_primary', true)
+                ->exists();
+
+            if ($primaryExists) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Validation failed',
+                    'errors'  => [
+                        'is_primary' => ['A primary lecturer has already been assigned to this subject in this section.']
+                    ]
+                ], 422);
+            }
+        }
+
         $assignment = SectionAssignment::create([
-            'section_id' => $request->section_id,
-            'subject_id' => $request->subject_id,
-            'user_id'    => $request->user_id,
-            'is_primary' => $request->input('is_primary', true),
-            'status'     => 'active',
+            'section_id'  => $request->section_id,
+            'subject_id'  => $request->subject_id,
+            'lecturer_id' => $request->lecturer_id,
+            'is_primary'  => $request->input('is_primary', true),
+            'status'      => 'active',
         ]);
 
-        $assignment->refresh();
+        $assignment->load(['section', 'subject', 'lecturer.user']);
 
         return response()->json([
             'status'  => 'success',
             'message' => 'Lecturer assigned to subject and section successfully',
             'data'    => [
                 'assignment' => [
-                    'id'         => $assignment->id,
-                    'section_name' => $item->section->name ?? null,
-                    'subject_name' => $item->subject->name ?? null,
-                    'lecturer_name'    => $item->user->name ?? null,
-                    'is_primary' => (bool) $assignment->is_primary,
-                    'status'     => $assignment->status,
-                    'created_at' => $assignment->created_at->format('Y-m-d H:i:s'),
+                    'id'            => $assignment->id,
+                    'section_name'  => $assignment->section->name,
+                    'subject_name'  => $assignment->subject->name,
+                    'lecturer_name' => $assignment->lecturer->user->name,
+                    'is_primary'    => (bool) $assignment->is_primary,
+                    'status'        => $assignment->status,
+                    'created_at'    => $assignment->created_at->format('Y-m-d H:i:s'),
                 ]
             ]
         ], 201);
@@ -98,7 +113,7 @@ class SectionAssignmentController extends Controller
 
     public function show($id): JsonResponse
     {
-        $assignment = SectionAssignment::with(['section', 'subject', 'user'])->find($id);
+        $assignment = SectionAssignment::with(['section', 'subject', 'lecturer.user'])->find($id);
 
         if (!$assignment) {
             return response()->json([
@@ -112,13 +127,13 @@ class SectionAssignmentController extends Controller
             'message' => 'Section Assignment details retrieved',
             'data'    => [
                 'assignment' => [
-                    'id'           => $assignment->id,
-                    'section_name' => $item->section->name ?? null,
-                    'subject_name' => $item->subject->name ?? null,
-                    'lecturer_name'    => $item->user->name ?? null,
-                    'is_primary'   => (bool) $assignment->is_primary,
-                    'status'       => $assignment->status,
-                    'created_at'   => $assignment->created_at->format('Y-m-d H:i:s'),
+                    'id'            => $assignment->id,
+                    'section_name'  => $assignment->section->name,
+                    'subject_name'  => $assignment->subject->name,
+                    'lecturer_name' => $assignment->lecturer->user->name,
+                    'is_primary'    => (bool) $assignment->is_primary,
+                    'status'        => $assignment->status,
+                    'created_at'    => $assignment->created_at->format('Y-m-d H:i:s'),
                 ]
             ]
         ], 200);
@@ -136,23 +151,26 @@ class SectionAssignmentController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'section_id' => 'exists:sections,id',
-            'subject_id' => 'exists:subjects,id',
-            'user_id'    => [
+            'section_id'  => 'exists:sections,id',
+            'subject_id'  => 'exists:subjects,id',
+            'lecturer_id' => [
                 'nullable',
-                Rule::exists('users', 'id')->where(function ($query) {
-                    $query->where('role_id', 4);
-                }),
-                Rule::unique('section_assignments')->where(function ($query) use ($request) {
-                    return $query->where('section_id', $request->section_id)
-                                ->where('subject_id', $request->subject_id)
-                                ->where('user_id', $request->user_id);
+                'exists:lecturers,id',
+                Rule::unique('section_assignments')->where(function ($query) use ($request, $assignment) {
+                    $sectionId = $request->input('section_id', $assignment->section_id);
+                    $subjectId = $request->input('subject_id', $assignment->subject_id);
+                    $lecturerId = $request->input('lecturer_id', $assignment->lecturer_id);
+
+                    return $query->where('section_id', $sectionId)
+                                ->where('subject_id', $subjectId)
+                                ->where('lecturer_id', $lecturerId)
+                                ->where('id', '!=', $assignment->id);
                 }),
             ],
-            'is_primary' => 'boolean'
+            'is_primary'  => 'boolean'
         ], [
-            'user_id.exists' => 'The selected user is invalid or does not have the required permissions.',
-            'user_id.unique' => 'This lecturer is already assigned to this subject in this section.'
+            'lecturer_id.exists' => 'The selected lecturer is invalid.',
+            'lecturer_id.unique' => 'This lecturer is already assigned to this subject in this section.'
         ]);
 
         if ($validator->fails()) {
@@ -163,25 +181,49 @@ class SectionAssignmentController extends Controller
             ], 422);
         }
 
+        $sectionId = $request->input('section_id', $assignment->section_id);
+        $subjectId = $request->input('subject_id', $assignment->subject_id);
+        $isPrimary = $request->input('is_primary', $assignment->is_primary);
+
+        if ($isPrimary) {
+            $primaryExists = SectionAssignment::where('section_id', $sectionId)
+                ->where('subject_id', $subjectId)
+                ->where('is_primary', true)
+                ->where('id', '!=', $id)
+                ->exists();
+
+            if ($primaryExists) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Validation failed',
+                    'errors'  => [
+                        'is_primary' => ['A primary lecturer has already been assigned to this subject in this section.']
+                    ]
+                ], 422);
+            }
+        }
+
         $assignment->update($request->only([
             'section_id', 
             'subject_id', 
-            'user_id', 
+            'lecturer_id', 
             'is_primary'
         ]));
+
+        $assignment->load(['section', 'subject', 'lecturer.user']);
 
         return response()->json([
             'status'  => 'success',
             'message' => 'Section Assignment updated successfully',
             'data'    => [
                 'assignment' => [
-                    'id'         => $assignment->id,
-                    'section_name' => $item->section->name ?? null,
-                    'subject_name' => $item->subject->name ?? null,
-                    'lecturer_name'    => $item->user->name ?? null,
-                    'is_primary' => (bool) $assignment->is_primary,
-                    'status'     => $assignment->status,
-                    'created_at' => $assignment->created_at->format('Y-m-d H:i:s'),
+                    'id'            => $assignment->id,
+                    'section_name'  => $assignment->section->name,
+                    'subject_name'  => $assignment->subject->name,
+                    'lecturer_name' => $assignment->lecturer->user->name,
+                    'is_primary'    => (bool) $assignment->is_primary,
+                    'status'        => $assignment->status,
+                    'created_at'    => $assignment->created_at->format('Y-m-d H:i:s'),
                 ]
             ]
         ], 200);

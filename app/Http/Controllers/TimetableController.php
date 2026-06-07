@@ -21,7 +21,10 @@ class TimetableController extends Controller
         $timetables = $query->get()->map(function ($item) {
             return [
                 'id'                    => $item->id,
-                'section_assignment_id' => $item->section_assignment_id,
+                'section_assignments_id' => $item->section_assignments_id,
+                'section_name'          => $item->sectionAssignments->section->name,
+                'subject_name'          => $item->sectionAssignments->subject->name,
+                'lecturer_name'         => $item->sectionAssignments->lecturer->user->name,
                 'day_of_week'           => $item->day_of_week,
                 'start_time'            => $item->start_time,
                 'end_time'              => $item->end_time,
@@ -43,13 +46,13 @@ class TimetableController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'section_assignment_id' => 'required|exists:section_assignments,id',
+            'section_assignments_id' => 'required|exists:section_assignments,id',
             'day_of_week'           => 'required|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
             'start_time'            => [
                 'required',
                 'date_format:H:i',
                 Rule::unique('timetables')->where(function ($query) use ($request) {
-                    return $query->where('section_assignment_id', $request->section_assignment_id)
+                    return $query->where('section_assignments_id', $request->section_assignments_id)
                                 ->where('day_of_week', $request->day_of_week)
                                 ->where('start_time', $request->start_time);
                 }),
@@ -85,7 +88,7 @@ class TimetableController extends Controller
         }
 
         $timetable = Timetable::create([
-            'section_assignment_id' => $request->section_assignment_id,
+            'section_assignments_id' => $request->section_assignments_id,
             'day_of_week'           => $request->day_of_week,
             'start_time'            => $request->start_time,
             'end_time'              => $request->end_time,
@@ -101,7 +104,7 @@ class TimetableController extends Controller
             'data'    => [
                 'timetable' => [
                     'id'                    => $timetable->id,
-                    'section_assignment_id' => $timetable->section_assignment_id,
+                    'section_assignments_id' => $timetable->section_assignments_id,
                     'day_of_week'           => $timetable->day_of_week,
                     'start_time'            => $timetable->start_time,
                     'end_time'              => $timetable->end_time,
@@ -130,7 +133,7 @@ class TimetableController extends Controller
             'data'    => [
                 'timetable' => [
                     'id'                    => $timetable->id,
-                    'section_assignment_id' => $timetable->section_assignment_id,
+                    'section_assignments_id' => $timetable->section_assignments_id,
                     'day_of_week'           => $timetable->day_of_week,
                     'start_time'            => $timetable->start_time,
                     'end_time'              => $timetable->end_time,
@@ -154,13 +157,13 @@ class TimetableController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'section_assignment_id' => 'exists:section_assignments,id',
+            'section_assignments_id' => 'exists:section_assignments,id',
             'day_of_week'           => 'in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
             'start_time'            => [
                 'required',
                 'date_format:H:i',
                 Rule::unique('timetables')->where(function ($query) use ($request) {
-                    return $query->where('section_assignment_id', $request->section_assignment_id)
+                    return $query->where('section_assignments_id', $request->section_assignments_id)
                                 ->where('day_of_week', $request->day_of_week)
                                 ->where('start_time', $request->start_time);
                 }),
@@ -196,7 +199,7 @@ class TimetableController extends Controller
         }
 
         $timetable->update($request->only([
-            'section_assignment_id',
+            'section_assignments_id',
             'day_of_week',
             'start_time',
             'end_time',
@@ -209,7 +212,7 @@ class TimetableController extends Controller
             'data'    => [
                 'timetable' => [
                     'id'                    => $timetable->id,
-                    'section_assignment_id' => $timetable->section_assignment_id,
+                    'section_assignments_id' => $timetable->section_assignments_id,
                     'day_of_week'           => $timetable->day_of_week,
                     'start_time'            => $timetable->start_time,
                     'end_time'              => $timetable->end_time,
