@@ -16,7 +16,6 @@ return new class extends Migration
                 ->after('id')
                 ->constrained('roles')
                 ->onDelete('restrict');
-                
             $table->enum('status', ['suspended', 'active', 'inactive'])
                 ->default('active')
                 ->after('password');

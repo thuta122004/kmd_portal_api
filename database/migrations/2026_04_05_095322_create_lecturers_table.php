@@ -17,10 +17,15 @@ return new class extends Migration
                 ->unique() 
                 ->constrained('users')
                 ->onDelete('restrict');
-            $table->string('employee_id')->unique()->nullable();
-            $table->string('department')->nullable();
-            $table->string('qualification')->nullable();
-            $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->string('employee_id')
+                ->unique()
+                ->nullable();
+            $table->string('department')
+                ->nullable();
+            $table->string('qualification')
+                ->nullable();
+            $table->enum('status', ['active', 'inactive'])
+                ->default('active');
             $table->timestamps();
         });
     }

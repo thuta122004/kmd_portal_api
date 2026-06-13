@@ -22,8 +22,10 @@ return new class extends Migration
             $table->foreignId('lecturer_id')
                 ->constrained('lecturers')
                 ->onDelete('restrict');
-            $table->boolean('is_primary')->default(true);
-            $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->boolean('is_primary')
+                ->default(true);
+            $table->enum('status', ['active', 'inactive'])
+                ->default('active');
             $table->timestamps();
         });
     }

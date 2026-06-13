@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\GuardianController;
 use App\Http\Controllers\LecturerController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\SectionAssignmentController;
+use App\Http\Controllers\StudentController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\TimetableController;
 use Illuminate\Http\Request;
@@ -29,6 +31,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // Lecturers
     Route::patch('lecturers/{id}/toggle', [LecturerController::class, 'toggleStatus']);
     Route::apiResource('lecturers', LecturerController::class);
+
+    // Students
+    Route::patch('students/{id}/toggle', [StudentController::class, 'toggleStatus']);
+    Route::apiResource('students', StudentController::class);
+
+    // Guardians
+    Route::post('guardians/{guardianId}/attach-student', [GuardianController::class, 'attachStudent']);
+    Route::patch('guardians/{id}/toggle', [GuardianController::class, 'toggleStatus']);
+    Route::apiResource('guardians', GuardianController::class);
 
     // Section Assignments
     Route::patch('section-assignments/{id}/toggle', [SectionAssignmentController::class, 'toggleStatus']);

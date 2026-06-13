@@ -14,10 +14,13 @@ return new class extends Migration
         Schema::create('sections', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('code')->unique();
+            $table->string('code')
+                ->unique();
             $table->date('start_date');
-            $table->date('end_date')->nullable();
-            $table->enum('status', ['pending', 'active', 'inactive'])->default('pending');
+            $table->date('end_date')
+                ->nullable();
+            $table->enum('status', ['pending', 'active', 'inactive'])
+                ->default('pending');
             $table->timestamps();
         });
     }
