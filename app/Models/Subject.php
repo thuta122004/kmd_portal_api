@@ -11,4 +11,9 @@ class Subject extends Model
         'code',
         'subject',
     ];
+
+    public function sectionAssignments()
+    {
+        return $this->hasMany(SectionAssignment::class, 'subject_id');
+    }
 }

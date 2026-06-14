@@ -17,10 +17,17 @@ class SectionAssignment extends Model
     public function section() { 
         return $this->belongsTo(Section::class); 
     }
+    
     public function subject() {
         return $this->belongsTo(Subject::class);
     }
+
     public function lecturer() {
         return $this->belongsTo(Lecturer::class, 'lecturer_id');
+    }
+
+    public function timetables()
+    {
+        return $this->hasMany(Timetable::class, 'section_assignments_id');
     }
 }

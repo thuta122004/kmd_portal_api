@@ -13,4 +13,9 @@ class Section extends Model
         'end_date',
         'status',
     ];
+
+    public function sectionAssignments()
+    {
+        return $this->hasMany(SectionAssignment::class, 'section_id');
+    }
 }

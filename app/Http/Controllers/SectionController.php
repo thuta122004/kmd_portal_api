@@ -82,15 +82,70 @@ class SectionController extends Controller
         ], 201);
     }
 
+    // public function show($id): JsonResponse
+    // {
+    //     $section = Section::find($id);
+
+    //     if (!$section) {
+    //         return response()->json([
+    //             'status'  => 'error',
+    //             'message' => 'Section not found'
+    //         ], 404);
+    //     }
+
+    //     return response()->json([
+    //         'status'  => 'success', 
+    //         'message' => 'Section retrieved successfully',
+    //         'data'    => [
+    //             'section' => [
+    //                 'id'         => $section->id,
+    //                 'name'       => $section->name,
+    //                 'code'       => $section->code,
+    //                 'start_date' => $section->start_date,
+    //                 'end_date'   => $section->end_date,
+    //                 'status'     => $section->status,
+    //                 'created_at' => $section->created_at->format('Y-m-d H:i:s'),
+    //             ]
+    //         ]
+    //     ], 200);
+    // }
+
     public function show($id): JsonResponse
     {
-        $section = Section::find($id);
+        $section = Section::with([
+            'sectionAssignments.subject',
+            'sectionAssignments.lecturer.user',
+            'sectionAssignments.timetables'
+        ])->find($id);
 
         if (!$section) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Section not found'
             ], 404);
+        }
+
+        $timetables = collect();
+
+        foreach ($section->sectionAssignments as $assignment) {
+            $timetableRecords = $assignment->timetables instanceof \Illuminate\Database\Eloquent\Collection 
+                ? $assignment->timetables 
+                : collect([$assignment->timetables])->filter();
+
+            foreach ($timetableRecords as $timetable) {
+                $timetables->push([
+                    'id'                     => $timetable->id,
+                    'section_assignments_id' => $assignment->id,
+                    'subject_name'           => $assignment->subject?->name ?? null,
+                    'lecturer_name'          => $assignment->lecturer?->user?->name ?? null,
+                    'day_of_week'            => $timetable->day_of_week,
+                    'start_time'             => $timetable->start_time,
+                    'end_time'               => $timetable->end_time,
+                    'room_number'            => $timetable->room_number,
+                    'status'                 => $timetable->status,
+                    'created_at'             => $timetable->created_at->format('Y-m-d H:i:s'),
+                ]);
+            }
         }
 
         return response()->json([
@@ -104,6 +159,7 @@ class SectionController extends Controller
                     'start_date' => $section->start_date,
                     'end_date'   => $section->end_date,
                     'status'     => $section->status,
+                    'timetables' => $timetables->values()->all(),
                     'created_at' => $section->created_at->format('Y-m-d H:i:s'),
                 ]
             ]
