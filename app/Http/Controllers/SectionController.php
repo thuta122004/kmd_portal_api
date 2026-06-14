@@ -249,4 +249,40 @@ class SectionController extends Controller
             ]
         ], 200);
     }
+
+    public function students($id): JsonResponse
+    {
+        $section = Section::with(['students.user'])->find($id);
+
+        if (!$section) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Section not found'
+            ], 404);
+        }
+
+        $enrolledStudents = $section->students->map(function ($student) {
+            return [
+                'student_id'         => $student->id,
+                'student_name'       => $student->user->name,
+                'student_reg_number' => $student->student_reg_number,
+                'enrollment_status'  => $student->pivot->status,
+                'enrollment_note'    => $student->pivot->note,
+                'enrolled_at'        => $student->pivot->created_at->format('Y-m-d H:i:s'),
+            ];
+        });
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Enrolled students retrieved successfully',
+            'data'    => [
+                'section' => [
+                    'id'       => $section->id,
+                    'name'     => $section->name,
+                    'code'     => $section->code,
+                    'students' => $enrolledStudents
+                ]
+            ]
+        ], 200);
+    }
 }

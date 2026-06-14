@@ -18,4 +18,11 @@ class Section extends Model
     {
         return $this->hasMany(SectionAssignment::class, 'section_id');
     }
+
+    public function students()
+    {
+        return $this->belongsToMany(Student::class, 'enrolments', 'section_id', 'student_id')
+                    ->withPivot('status', 'note')
+                    ->withTimestamps();
+    }
 }

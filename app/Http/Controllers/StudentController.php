@@ -23,8 +23,8 @@ class StudentController extends Controller
             return [
                 'id'                 => $student->id,
                 'user_id'            => $student->user_id,
-                'name'               => $student->user?->name ?? null,
-                'email'              => $student->user?->email ?? null,
+                'name'               => $student->user?->name,
+                'email'              => $student->user?->email,
                 'student_reg_number' => $student->student_reg_number,
                 'date_of_birth'      => $student->date_of_birth,
                 'gender'             => $student->gender,
@@ -34,9 +34,9 @@ class StudentController extends Controller
                 'guardians'          => $student->guardians->map(function ($guardian) {
                     return [
                         'id'                 => $guardian->id,
-                        'name'               => $guardian->user?->name ?? null,
+                        'name'               => $guardian->user?->name,
                         'phone'              => $guardian->phone,
-                        'relationship_type'  => $guardian->pivot->relationship_type ?? null,
+                        'relationship_type'  => $guardian->pivot->relationship_type,
                         'is_primary_contact' => (bool) ($guardian->pivot->is_primary_contact ?? false),
                     ];
                 }),
@@ -95,8 +95,8 @@ class StudentController extends Controller
                     'student' => [
                         'id'                 => $student->id,
                         'user_id'            => $student->user_id,
-                        'name'               => $student->user?->name ?? null,
-                        'email'              => $student->user?->email ?? null,
+                        'name'               => $student->user?->name,
+                        'email'              => $student->user?->email,
                         'student_reg_number' => $student->student_reg_number,
                         'date_of_birth'      => $student->date_of_birth,
                         'gender'             => $student->gender,
@@ -137,8 +137,8 @@ class StudentController extends Controller
                 'student' => [
                     'id'                 => $student->id,
                     'user_id'            => $student->user_id,
-                    'name'               => $student->user?->name ?? null,
-                    'email'              => $student->user?->email ?? null,
+                    'name'               => $student->user?->name,
+                    'email'              => $student->user?->email,
                     'student_reg_number' => $student->student_reg_number,
                     'date_of_birth'      => $student->date_of_birth,
                     'gender'             => $student->gender,
@@ -148,9 +148,9 @@ class StudentController extends Controller
                     'guardians'          => $student->guardians->map(function ($guardian) {
                         return [
                             'id'                 => $guardian->id,
-                            'name'               => $guardian->user?->name ?? null,
+                            'name'               => $guardian->user?->name,
                             'phone'              => $guardian->phone,
-                            'relationship_type'  => $guardian->pivot->relationship_type ?? null,
+                            'relationship_type'  => $guardian->pivot->relationship_type,
                             'is_primary_contact' => (bool) ($guardian->pivot->is_primary_contact ?? false),
                         ];
                     }),
@@ -206,8 +206,8 @@ class StudentController extends Controller
                 'student' => [
                     'id'                 => $student->id,
                     'user_id'            => $student->user_id,
-                    'name'               => $student->user?->name ?? null,
-                    'email'              => $student->user?->email ?? null,
+                    'name'               => $student->user?->name,
+                    'email'              => $student->user?->email,
                     'student_reg_number' => $student->student_reg_number,
                     'date_of_birth'      => $student->date_of_birth,
                     'gender'             => $student->gender,
@@ -217,9 +217,9 @@ class StudentController extends Controller
                     'guardians'          => $student->guardians->map(function ($guardian) {
                         return [
                             'id'                 => $guardian->id,
-                            'name'               => $guardian->user?->name ?? null,
+                            'name'               => $guardian->user?->name,
                             'phone'              => $guardian->phone,
-                            'relationship_type'  => $guardian->pivot->relationship_type ?? null,
+                            'relationship_type'  => $guardian->pivot->relationship_type,
                             'is_primary_contact' => (bool) ($guardian->pivot->is_primary_contact ?? false),
                         ];
                     }),

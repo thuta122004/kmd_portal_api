@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\EnrolmentController;
 use App\Http\Controllers\GuardianController;
 use App\Http\Controllers\LecturerController;
 use App\Http\Controllers\SectionController;
@@ -22,7 +23,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::put('users/{id}/password', [UserController::class, 'updatePassword']);
-    Route::patch('users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
+    Route::patch('users/{id}/toggle', [UserController::class, 'toggleStatus']);
     Route::apiResource('users', UserController::class);
 
     // Subjects
@@ -30,6 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('subjects', SubjectController::class);
 
     // Sections
+    Route::get('sections/{id}/students', [SectionController::class, 'students']);
     Route::patch('sections/{id}/toggle', [SectionController::class, 'toggleStatus']);
     Route::apiResource('sections', SectionController::class);
 
@@ -53,4 +55,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Timetables
     Route::patch('timetables/{id}/toggle', [TimetableController::class, 'toggleStatus']);
     Route::apiResource('timetables', TimetableController::class);
+
+    // Enrolments
+    Route::patch('enrolments/{id}/toggle', [EnrolmentController::class, 'toggleStatus']);
+    Route::apiResource('enrolments', EnrolmentController::class);
 });

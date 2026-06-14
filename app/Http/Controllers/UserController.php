@@ -24,7 +24,7 @@ class UserController extends Controller
             return [
                 'id'         => $user->id,
                 'role_id'    => $user->role_id,
-                'role_name'  => $user->role->name ?? null,
+                'role_name'  => $user->role->name,
                 'name'       => $user->name,
                 'email'      => $user->email,
                 'status'     => $user->status,
@@ -76,7 +76,7 @@ class UserController extends Controller
                     'user' => [
                         'id'         => $user->id,
                         'role_id'    => $user->role_id,
-                        'role_name'  => $user->role->name ?? null,
+                        'role_name'  => $user->role->name,
                         'name'       => $user->name,
                         'email'      => $user->email,
                         'status'     => $user->status,
@@ -110,7 +110,7 @@ class UserController extends Controller
                 'user' => [
                     'id'         => $user->id,
                     'role_id'    => $user->role_id,
-                    'role_name'  => $user->role->name ?? null,
+                    'role_name'  => $user->role->name,
                     'name'       => $user->name,
                     'email'      => $user->email,
                     'status'     => $user->status,
@@ -155,7 +155,7 @@ class UserController extends Controller
                 'user' => [
                     'id'         => $user->id,
                     'role_id'    => $user->role_id,
-                    'role_name'  => $user->role->name ?? null,
+                    'role_name'  => $user->role->name,
                     'name'       => $user->name,
                     'email'      => $user->email,
                     'status'     => $user->status,

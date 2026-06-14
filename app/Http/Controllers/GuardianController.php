@@ -22,8 +22,8 @@ class GuardianController extends Controller
             return [
                 'id'         => $guardian->id,
                 'user_id'    => $guardian->user_id,
-                'name'       => $guardian->user?->name ?? null,
-                'email'      => $guardian->user?->email ?? null,
+                'name'       => $guardian->user?->name,
+                'email'      => $guardian->user?->email,
                 'phone'      => $guardian->phone,
                 'occupation' => $guardian->occupation,
                 'address'    => $guardian->address,
@@ -31,9 +31,9 @@ class GuardianController extends Controller
                 'students'   => $guardian->students->map(function ($student) {
                     return [
                         'id'                 => $student->id,
-                        'name'               => $student->user?->name ?? null,
+                        'name'               => $student->user?->name,
                         'student_reg_number' => $student->student_reg_number,
-                        'relationship_type'  => $student->pivot->relationship_type ?? null,
+                        'relationship_type'  => $student->pivot->relationship_type,
                         'is_primary_contact' => (bool) ($student->pivot->is_primary_contact ?? false),
                     ];
                 }),
@@ -87,8 +87,8 @@ class GuardianController extends Controller
                     'guardian' => [
                         'id'         => $guardian->id,
                         'user_id'    => $guardian->user_id,
-                        'name'       => $guardian->user?->name ?? null,
-                        'email'      => $guardian->user?->email ?? null,
+                        'name'       => $guardian->user?->name,
+                        'email'      => $guardian->user?->email,
                         'phone'      => $guardian->phone,
                         'occupation' => $guardian->occupation,
                         'address'    => $guardian->address,
@@ -124,8 +124,8 @@ class GuardianController extends Controller
                 'guardian' => [
                     'id'         => $guardian->id,
                     'user_id'    => $guardian->user_id,
-                    'name'       => $guardian->user?->name ?? null,
-                    'email'      => $guardian->user?->email ?? null,
+                    'name'       => $guardian->user?->name,
+                    'email'      => $guardian->user?->email,
                     'phone'      => $guardian->phone,
                     'occupation' => $guardian->occupation,
                     'address'    => $guardian->address,
@@ -133,9 +133,9 @@ class GuardianController extends Controller
                     'students'   => $guardian->students->map(function ($student) {
                         return [
                             'id'                 => $student->id,
-                            'name'               => $student->user?->name ?? null,
+                            'name'               => $student->user?->name,
                             'student_reg_number' => $student->student_reg_number,
-                            'relationship_type'  => $student->pivot->relationship_type ?? null,
+                            'relationship_type'  => $student->pivot->relationship_type,
                             'is_primary_contact' => (bool) ($student->pivot->is_primary_contact ?? false),
                         ];
                     }),
@@ -181,8 +181,8 @@ class GuardianController extends Controller
                 'guardian' => [
                     'id'         => $guardian->id,
                     'user_id'    => $guardian->user_id,
-                    'name'       => $guardian->user?->name ?? null,
-                    'email'      => $guardian->user?->email ?? null,
+                    'name'       => $guardian->user?->name,
+                    'email'      => $guardian->user?->email,
                     'phone'      => $guardian->phone,
                     'occupation' => $guardian->occupation,
                     'address'    => $guardian->address,
@@ -190,9 +190,9 @@ class GuardianController extends Controller
                     'students'   => $guardian->students->map(function ($student) {
                         return [
                             'id'                 => $student->id,
-                            'name'               => $student->user?->name ?? null,
+                            'name'               => $student->user?->name,
                             'student_reg_number' => $student->student_reg_number,
-                            'relationship_type'  => $student->pivot->relationship_type ?? null,
+                            'relationship_type'  => $student->pivot->relationship_type,
                             'is_primary_contact' => (bool) ($student->pivot->is_primary_contact ?? false),
                         ];
                     }),
