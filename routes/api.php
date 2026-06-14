@@ -8,6 +8,7 @@ use App\Http\Controllers\SectionAssignmentController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\TimetableController;
+use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,10 @@ Route::post('/login', [AuthController::class, 'login']);
 // Protected Routes (Bearer Token Required)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    Route::put('users/{id}/password', [UserController::class, 'updatePassword']);
+    Route::patch('users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
+    Route::apiResource('users', UserController::class);
 
     // Subjects
     Route::patch('subjects/{id}/toggle', [SubjectController::class, 'toggleStatus']);
