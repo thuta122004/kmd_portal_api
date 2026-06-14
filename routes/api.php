@@ -54,6 +54,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('section-assignments', SectionAssignmentController::class);
 
     // Timetables
+    Route::get('timetables/attendance-sheet', [TimetableController::class, 'getTimetableWithAttendanceByDate']);
     Route::patch('timetables/{id}/toggle', [TimetableController::class, 'toggleStatus']);
     Route::apiResource('timetables', TimetableController::class);
 

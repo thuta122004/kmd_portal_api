@@ -18,4 +18,9 @@ class Timetable extends Model
     public function sectionAssignments() { 
         return $this->belongsTo(SectionAssignment::class); 
     }
+
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class, 'timetable_id');
+    }
 }

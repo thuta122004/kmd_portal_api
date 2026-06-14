@@ -6,6 +6,7 @@ use App\Models\Timetable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
 class TimetableController extends Controller
@@ -249,5 +250,76 @@ class TimetableController extends Controller
                 ]
             ]
         ], 200);
+    }
+
+    public function getTimetableWithAttendanceByDate(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'date' => 'required|date_format:Y-m-d',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $targetDateStr = $request->query('date');
+            $parsedDate = Carbon::createFromFormat('Y-m-d', $targetDateStr);
+            $dayName = $parsedDate->format('l');
+
+            $timetables = Timetable::with([
+                'sectionAssignments.subject',
+                'sectionAssignments.section',
+                'sectionAssignments.lecturer.user',
+                'attendances' => function ($query) use ($targetDateStr) {
+                    $query->where('date', $targetDateStr)->with('user');
+                }
+            ])
+            ->where('day_of_week', $dayName)
+            ->where('status', 'active')
+            ->get();
+
+            $formattedData = $timetables->map(function ($timetable) {
+                return [
+                    'timetable_id' => $timetable->id,
+                    'day_of_week'  => $timetable->day_of_week,
+                    'time_slot'    => $timetable->start_time . ' - ' . $timetable->end_time,
+                    'room_number'  => $timetable->room_number,
+                    'subject'      => $timetable->sectionAssignments->subject->name,
+                    'lecturer'     => $timetable->sectionAssignments->lecturer->user->name,
+                    'section'      => $timetable->sectionAssignments->section->name,
+                    'attendance_logs' => $timetable->attendances->map(function ($attendance) {
+                        return [
+                            'attendance_id' => $attendance->id,
+                            'user_id'       => $attendance->user_id,
+                            'student_name'  => $attendance->user->name,
+                            'status'        => $attendance->status,
+                            'remark'        => $attendance->remark,
+                            'logged_at'     => $attendance->created_at ? $attendance->created_at->format('Y-m-d H:i:s') : null,
+                        ];
+                    }),
+                ];
+            });
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => "Timetable schedule and attendance logs retrieved for {$targetDateStr} ({$dayName})",
+                'data'    => [
+                    'date'       => $targetDateStr,
+                    'day'        => $dayName,
+                    'timetables' => $formattedData
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Server Error: Could not compile data sheet for requested date.'
+            ], 500);
+        }
     }
 }
