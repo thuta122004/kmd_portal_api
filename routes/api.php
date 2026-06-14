@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EnrolmentController;
 use App\Http\Controllers\GuardianController;
@@ -59,4 +60,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Enrolments
     Route::patch('enrolments/{id}/toggle', [EnrolmentController::class, 'toggleStatus']);
     Route::apiResource('enrolments', EnrolmentController::class);
+
+    // Attendances
+    Route::post('/attendances/refresh', [AttendanceController::class, 'refreshAbsences']);
+    Route::patch('attendances/{id}/toggle', [AttendanceController::class, 'toggleStatus']);
+    Route::apiResource('attendances', AttendanceController::class);
 });
