@@ -223,4 +223,31 @@ class UserController extends Controller
             ]
         ], 200);
     }
+
+    public function resetPassword($id): JsonResponse
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User not found'
+            ], 404);
+        }
+
+        try {
+            $user->password = Hash::make('Kmd123!@#');
+            $user->save();
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Password has been reset to default successfully'
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to reset password'
+            ], 500);
+        }
+    }
 }

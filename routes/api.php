@@ -23,6 +23,8 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
+    // Users
+    Route::patch('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
     Route::put('users/{id}/password', [UserController::class, 'updatePassword']);
     Route::patch('users/{id}/toggle', [UserController::class, 'toggleStatus']);
     Route::apiResource('users', UserController::class);
