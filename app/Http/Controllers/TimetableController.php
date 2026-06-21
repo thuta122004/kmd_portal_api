@@ -72,20 +72,41 @@ class TimetableController extends Controller
             ], 422);
         }
 
-        $exists = Timetable::where('day_of_week', $request->day_of_week)
-            ->where('room_number', $request->room_number)
-            ->where(function ($query) use ($request) {
-                $query->where(function ($q) use ($request) {
-                    $q->where('start_time', '<', $request->end_time)
-                    ->where('end_time', '>', $request->start_time);
-                });
-            })->exists();
+        $currentAssignment = \App\Models\SectionAssignment::find($request->section_assignments_id);
+        if ($currentAssignment) {
+            $lecturerBusy = Timetable::where('status', 'active')
+                ->where('day_of_week', $request->day_of_week)
+                ->whereHas('sectionAssignments', function ($query) use ($currentAssignment) {
+                    $query->where('lecturer_id', $currentAssignment->lecturer_id);
+                })
+                ->where(function ($query) use ($request) {
+                    $query->where('start_time', '<', $request->end_time)
+                        ->where('end_time', '>', $request->start_time);
+                })->exists();
 
-        if ($exists) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'The room is already occupied during this time period.',
-            ], 422);
+            if ($lecturerBusy) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'The lecturer is already assigned to another active class during this time period.',
+                ], 422);
+            }
+        }
+
+        if ($request->room_number) {
+            $exists = Timetable::where('status', 'active')
+                ->where('day_of_week', $request->day_of_week)
+                ->where('room_number', $request->room_number)
+                ->where(function ($query) use ($request) {
+                    $query->where('start_time', '<', $request->end_time)
+                        ->where('end_time', '>', $request->start_time);
+                })->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'The room is already occupied during this time period.',
+                ], 422);
+            }
         }
 
         $timetable = Timetable::create([
@@ -157,16 +178,22 @@ class TimetableController extends Controller
             ], 404);
         }
 
+        $sectionAssignmentId = $request->input('section_assignments_id', $timetable->section_assignments_id);
+        $dayOfWeek           = $request->input('day_of_week', $timetable->day_of_week);
+        $startTime           = $request->input('start_time', $timetable->start_time);
+        $endTime             = $request->input('end_time', $timetable->end_time);
+        $roomNumber          = $request->input('room_number', $timetable->room_number);
+
         $validator = Validator::make($request->all(), [
             'section_assignments_id' => 'exists:section_assignments,id',
             'day_of_week'           => 'in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
             'start_time'            => [
                 'required',
                 'date_format:H:i',
-                Rule::unique('timetables')->where(function ($query) use ($request) {
-                    return $query->where('section_assignments_id', $request->section_assignments_id)
-                                ->where('day_of_week', $request->day_of_week)
-                                ->where('start_time', $request->start_time);
+                Rule::unique('timetables')->ignore($timetable->id)->where(function ($query) use ($sectionAssignmentId, $dayOfWeek, $startTime) {
+                    return $query->where('section_assignments_id', $sectionAssignmentId)
+                                ->where('day_of_week', $dayOfWeek)
+                                ->where('start_time', $startTime);
                 }),
             ],
             'end_time'              => 'required|date_format:H:i|after:start_time',
@@ -183,29 +210,52 @@ class TimetableController extends Controller
             ], 422);
         }
 
-        $exists = Timetable::where('day_of_week', $request->day_of_week)
-            ->where('room_number', $request->room_number)
-            ->where(function ($query) use ($request) {
-                $query->where(function ($q) use ($request) {
-                    $q->where('start_time', '<', $request->end_time)
-                    ->where('end_time', '>', $request->start_time);
-                });
-            })->exists();
+        $currentAssignment = \App\Models\SectionAssignment::find($sectionAssignmentId);
+        if ($currentAssignment) {
+            $lecturerBusy = Timetable::where('id', '!=', $timetable->id)
+                ->where('status', 'active')
+                ->where('day_of_week', $dayOfWeek)
+                ->whereHas('sectionAssignments', function ($query) use ($currentAssignment) {
+                    $query->where('lecturer_id', $currentAssignment->lecturer_id);
+                })
+                ->where(function ($query) use ($startTime, $endTime) {
+                    $query->where('start_time', '<', $endTime)
+                        ->where('end_time', '>', $startTime);
+                })->exists();
 
-        if ($exists) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'The room is already occupied during this time period.',
-            ], 422);
+            if ($lecturerBusy) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'The lecturer is already assigned to another active class during this time period.',
+                ], 422);
+            }
         }
 
-        $timetable->update($request->only([
-            'section_assignments_id',
-            'day_of_week',
-            'start_time',
-            'end_time',
-            'room_number'
-        ]));
+        if ($roomNumber) {
+            $exists = Timetable::where('id', '!=', $timetable->id)
+                ->where('status', 'active')
+                ->where('day_of_week', $dayOfWeek)
+                ->where('room_number', $roomNumber)
+                ->where(function ($query) use ($startTime, $endTime) {
+                    $query->where('start_time', '<', $endTime)
+                        ->where('end_time', '>', $startTime);
+                })->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'The room is already occupied during this time period.',
+                ], 422);
+            }
+        }
+
+        $timetable->update([
+            'section_assignments_id' => $sectionAssignmentId,
+            'day_of_week'           => $dayOfWeek,
+            'start_time'            => $startTime,
+            'end_time'              => $endTime,
+            'room_number'           => $roomNumber,
+        ]);
 
         return response()->json([
             'status'  => 'success',
@@ -236,7 +286,51 @@ class TimetableController extends Controller
             ], 404);
         }
 
-        $timetable->status = ($timetable->status === 'active') ? 'inactive' : 'active';
+        $targetStatus = ($timetable->status === 'active') ? 'inactive' : 'active';
+
+        if ($targetStatus === 'active') {
+            
+            $currentAssignment = \App\Models\SectionAssignment::find($timetable->section_assignments_id);
+            if ($currentAssignment) {
+                $lecturerBusy = Timetable::where('id', '!=', $timetable->id)
+                    ->where('status', 'active')
+                    ->where('day_of_week', $timetable->day_of_week)
+                    ->whereHas('sectionAssignments', function ($query) use ($currentAssignment) {
+                        $query->where('lecturer_id', $currentAssignment->lecturer_id);
+                    })
+                    ->where(function ($query) use ($timetable) {
+                        $query->where('start_time', '<', $timetable->end_time)
+                            ->where('end_time', '>', $timetable->start_time);
+                    })->exists();
+
+                if ($lecturerBusy) {
+                    return response()->json([
+                        'status'  => 'error',
+                        'message' => 'Cannot activate: The lecturer is already assigned to another active class during this time period.',
+                    ], 422);
+                }
+            }
+
+            if ($timetable->room_number) {
+                $roomOccupied = Timetable::where('id', '!=', $timetable->id)
+                    ->where('status', 'active')
+                    ->where('day_of_week', $timetable->day_of_week)
+                    ->where('room_number', $timetable->room_number)
+                    ->where(function ($query) use ($timetable) {
+                        $query->where('start_time', '<', $timetable->end_time)
+                            ->where('end_time', '>', $timetable->start_time);
+                    })->exists();
+
+                if ($roomOccupied) {
+                    return response()->json([
+                        'status'  => 'error',
+                        'message' => 'Cannot activate: The room is already occupied during this time period.',
+                    ], 422);
+                }
+            }
+        }
+
+        $timetable->status = $targetStatus;
         $timetable->save();
 
         return response()->json([

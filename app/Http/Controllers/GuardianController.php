@@ -252,4 +252,16 @@ class GuardianController extends Controller
 
         return response()->json(['status' => 'success', 'message' => 'Student linked successfully.']);
     }
+
+    public function detachStudent($guardianId, $studentId): JsonResponse
+    {
+        $guardian = Guardian::findOrFail($guardianId);
+        
+        $guardian->students()->detach($studentId);
+
+        return response()->json([
+            'status' => 'success', 
+            'message' => 'Student unlinked successfully.'
+        ]);
+    }
 }

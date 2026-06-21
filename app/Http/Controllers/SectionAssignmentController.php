@@ -22,7 +22,9 @@ class SectionAssignmentController extends Controller
             return [
                 'id'            => $item->id,
                 'section_name'  => $item->section->name,
+                'section_code'  => $item->section->code,
                 'subject_name'  => $item->subject->name,
+                'subject_code'  => $item->subject->code,
                 'lecturer_name' => $item->lecturer->user->name,
                 'is_primary'    => (bool) $item->is_primary,
                 'status'        => $item->status,
