@@ -30,6 +30,7 @@ class TimetableController extends Controller
                 'start_time'            => $item->start_time,
                 'end_time'              => $item->end_time,
                 'room_number'           => $item->room_number,
+                'link'                  => $item->link,
                 'status'                => $item->status,
                 'created_at'            => $item->created_at->format('Y-m-d H:i:s'),
             ];
@@ -60,6 +61,7 @@ class TimetableController extends Controller
             ],
             'end_time'              => 'required|date_format:H:i|after:start_time',
             'room_number'           => 'nullable|string|max:50',
+            'link'        => 'nullable|url|max:255',
         ], [
             'start_time.unique' => 'This timetable slot already exists for this assignment.'
         ]);
@@ -115,6 +117,7 @@ class TimetableController extends Controller
             'start_time'            => $request->start_time,
             'end_time'              => $request->end_time,
             'room_number'           => $request->room_number,
+            'link'                  => $request->link,
             'status'                => 'active',
         ]);
 
@@ -131,6 +134,7 @@ class TimetableController extends Controller
                     'start_time'            => $timetable->start_time,
                     'end_time'              => $timetable->end_time,
                     'room_number'           => $timetable->room_number,
+                    'link'                  => $timetable->link,
                     'status'                => $timetable->status,
                     'created_at'            => $timetable->created_at->format('Y-m-d H:i:s'),
                 ]
@@ -160,6 +164,7 @@ class TimetableController extends Controller
                     'start_time'            => $timetable->start_time,
                     'end_time'              => $timetable->end_time,
                     'room_number'           => $timetable->room_number,
+                    'link'                  => $timetable->link,
                     'status'                => $timetable->status,
                     'created_at'            => $timetable->created_at->format('Y-m-d H:i:s'),
                 ]
@@ -198,6 +203,7 @@ class TimetableController extends Controller
             ],
             'end_time'              => 'required|date_format:H:i|after:start_time',
             'room_number'           => 'nullable|string|max:50',
+            'link'        => 'nullable|url|max:255',
         ], [
             'start_time.unique' => 'This timetable slot already exists for this assignment.'
         ]);
@@ -255,6 +261,7 @@ class TimetableController extends Controller
             'start_time'            => $startTime,
             'end_time'              => $endTime,
             'room_number'           => $roomNumber,
+            'link'                  => $request->input('link', $timetable->link),
         ]);
 
         return response()->json([
@@ -268,6 +275,7 @@ class TimetableController extends Controller
                     'start_time'            => $timetable->start_time,
                     'end_time'              => $timetable->end_time,
                     'room_number'           => $timetable->room_number,
+                    'link'                  => $timetable->link,
                     'status'                => $timetable->status,
                     'created_at'            => $timetable->created_at->format('Y-m-d H:i:s'),
                 ]
@@ -383,6 +391,7 @@ class TimetableController extends Controller
                     'day_of_week'  => $timetable->day_of_week,
                     'time_slot'    => $timetable->start_time . ' - ' . $timetable->end_time,
                     'room_number'  => $timetable->room_number,
+                    'link'         => $timetable->link,
                     'subject'      => $timetable->sectionAssignments->subject->name,
                     'lecturer'     => $timetable->sectionAssignments->lecturer->user->name,
                     'section'      => $timetable->sectionAssignments->section->name,

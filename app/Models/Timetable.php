@@ -12,6 +12,7 @@ class Timetable extends Model
         'start_time',
         'end_time',
         'room_number',
+        'link',
         'status',
     ];
 
