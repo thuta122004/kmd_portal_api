@@ -265,6 +265,7 @@ class SectionController extends Controller
             return [
                 'student_id'         => $student->id,
                 'student_name'       => $student->user->name,
+                'student_email'       => $student->user->email,
                 'student_reg_number' => $student->student_reg_number,
                 'enrollment_status'  => $student->pivot->status,
                 'enrollment_note'    => $student->pivot->note,
