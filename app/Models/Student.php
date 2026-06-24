@@ -27,4 +27,8 @@ class Student extends Model
                     ->withPivot('relationship_type', 'is_primary_contact')
                     ->withTimestamps();
     }
+
+    public function enrolments() {
+        return $this->hasMany(Enrolment::class, 'student_id');
+    }
 }

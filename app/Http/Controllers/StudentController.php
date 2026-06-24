@@ -13,7 +13,7 @@ class StudentController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Student::query()->with(['user', 'guardians.user']);
+        $query = Student::query()->with(['user', 'guardians.user', 'enrolments.section']);
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
@@ -38,6 +38,14 @@ class StudentController extends Controller
                         'phone'              => $guardian->phone,
                         'relationship_type'  => $guardian->pivot->relationship_type,
                         'is_primary_contact' => (bool) ($guardian->pivot->is_primary_contact ?? false),
+                    ];
+                }),
+                'enrolment_history'  => $student->enrolments->map(function ($e) {
+                    return [
+                        'section_name' => $e->section?->name,
+                        'section_code' => $e->section?->code,
+                        'status'       => $e->status,
+                        'enrolled_at'  => $e->created_at?->format('Y-m-d'),
                     ];
                 }),
                 'created_at'         => $student->created_at->format('Y-m-d H:i:s'),
@@ -121,7 +129,7 @@ class StudentController extends Controller
 
     public function show($id): JsonResponse
     {
-        $student = Student::with(['user', 'guardians.user'])->find($id);
+        $student = Student::with(['user', 'guardians.user', 'enrolments.section'])->find($id);
 
         if (!$student) {
             return response()->json([
@@ -152,6 +160,13 @@ class StudentController extends Controller
                             'phone'              => $guardian->phone,
                             'relationship_type'  => $guardian->pivot->relationship_type,
                             'is_primary_contact' => (bool) ($guardian->pivot->is_primary_contact ?? false),
+                        ];
+                    }),
+                    'enrolment_history'  => $student->enrolments->map(function ($e) {
+                        return [
+                            'section'     => $e->section?->name,
+                            'status'      => $e->status,
+                            'enrolled_at' => $e->created_at?->format('Y-m-d'),
                         ];
                     }),
                     'created_at'         => $student->created_at->format('Y-m-d H:i:s'),
