@@ -17,24 +17,34 @@ class AttendanceController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Attendance::query()->with(['user', 'timetable.sectionAssignments.subject']);
+        $query = Attendance::query()->with([
+            'user', 
+            'timetable.sectionAssignments.subject',
+            'timetable.sectionAssignments.section',
+            'timetable.sectionAssignments.lecturer.user'
+        ]);
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
 
         $attendances = $query->get()->map(function ($item) {
+            $assignment = $item->timetable->sectionAssignments;
+            
             return [
-                'id'           => $item->id,
-                'user_id'      => $item->user_id,
-                'user_name'    => $item->user->name,
-                'timetable_id' => $item->timetable_id,
-                'day_of_week'  => $item->timetable->day_of_week,
-                'time_slot'    => $item->timetable->start_time . ' - ' . $item->timetable->end_time,
-                'date'         => $item->date,
-                'status'       => $item->status,
-                'remark'       => $item->remark,
-                'created_at'   => $item->created_at->format('Y-m-d H:i:s'),
+                'id'            => $item->id,
+                'user_id'       => $item->user_id,
+                'user_name'     => $item->user->name,
+                'timetable_id'  => $item->timetable_id,
+                'subject_code'  => $assignment->subject->code,
+                'section_code'  => $assignment->section->code,
+                'lecturer_name' => $assignment->lecturer->user->name,
+                'day_of_week'   => $item->timetable->day_of_week,
+                'time_slot'     => $item->timetable->start_time . ' - ' . $item->timetable->end_time,
+                'date'          => $item->date,
+                'status'        => $item->status,
+                'remark'        => $item->remark,
+                'created_at'    => $item->created_at->format('Y-m-d H:i:s'),
             ];
         });
 
