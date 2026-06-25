@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SectionAssignment;
+use App\Models\Lecturer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
@@ -22,10 +23,10 @@ class SectionAssignmentController extends Controller
             return [
                 'id'            => $item->id,
                 'section_name'  => $item->section->name,
-                'section_id'  => $item->section->id,
+                'section_id'    => $item->section->id,
                 'section_code'  => $item->section->code,
                 'subject_name'  => $item->subject->name,
-                'subject_id'  => $item->subject->id,
+                'subject_id'    => $item->subject->id,
                 'subject_code'  => $item->subject->code,
                 'lecturer_name' => $item->lecturer->user->name,
                 'lecturer_id'   => $item->lecturer->id,
@@ -106,6 +107,12 @@ class SectionAssignmentController extends Controller
             'status'      => 'active',
         ]);
 
+        $lecturer = Lecturer::find($request->lecturer_id);
+        if ($lecturer && $lecturer->status !== 'active') {
+            $lecturer->status = 'active';
+            $lecturer->save();
+        }
+
         $assignment->load(['section', 'subject', 'lecturer.user']);
 
         return response()->json([
@@ -163,6 +170,8 @@ class SectionAssignmentController extends Controller
                 'message' => 'Assignment not found for this Section'
             ], 404);
         }
+
+        $oldLecturerId = $assignment->lecturer_id;
 
         $validator = Validator::make($request->all(), [
             'section_id'  => [
@@ -239,6 +248,11 @@ class SectionAssignmentController extends Controller
             'is_primary'
         ]));
 
+        if ($request->has('lecturer_id') && $oldLecturerId != $request->lecturer_id) {
+            $this->syncLecturerProfileStatus($oldLecturerId);
+        }
+        $this->syncLecturerProfileStatus($assignment->lecturer_id);
+
         $assignment->load(['section', 'subject', 'lecturer.user']);
 
         return response()->json([
@@ -290,6 +304,8 @@ class SectionAssignmentController extends Controller
         $assignment->status = $targetStatus;
         $assignment->save();
 
+        $this->syncLecturerProfileStatus($assignment->lecturer_id);
+
         return response()->json([
             'status'  => 'success',
             'message' => "Section Assignment status updated to {$assignment->status}",
@@ -301,5 +317,18 @@ class SectionAssignmentController extends Controller
                 ]
             ]
         ], 200);
+    }
+
+    private function syncLecturerProfileStatus($lecturerId): void
+    {
+        $lecturer = Lecturer::find($lecturerId);
+        if (!$lecturer) return;
+
+        $hasActiveAssignments = SectionAssignment::where('lecturer_id', $lecturerId)
+            ->where('status', 'active')
+            ->exists();
+
+        $lecturer->status = $hasActiveAssignments ? 'active' : 'inactive';
+        $lecturer->save();
     }
 }

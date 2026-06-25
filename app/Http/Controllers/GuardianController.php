@@ -202,33 +202,6 @@ class GuardianController extends Controller
         ], 200);
     }
 
-    public function toggleStatus($id): JsonResponse
-    {
-        $guardian = Guardian::find($id);
-
-        if (!$guardian) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Guardian profile not found'
-            ], 404);
-        }
-
-        $guardian->status = ($guardian->status === 'active') ? 'inactive' : 'active';
-        $guardian->save();
-
-        return response()->json([
-            'status'  => 'success',
-            'message' => "Guardian status updated to {$guardian->status}",
-            'data'    => [
-                'guardian' => [
-                    'id'         => $guardian->id,
-                    'status'     => $guardian->status,
-                    'updated_at' => $guardian->updated_at->format('Y-m-d H:i:s'),
-                ]
-            ]
-        ], 200);
-    }
-
     public function attachStudent(Request $request, $guardianId): JsonResponse
     {
         $guardian = Guardian::findOrFail($guardianId);
@@ -250,6 +223,8 @@ class GuardianController extends Controller
             ]
         ]);
 
+        $this->syncGuardianProfileStatus($guardian);
+
         return response()->json(['status' => 'success', 'message' => 'Student linked successfully.']);
     }
 
@@ -259,9 +234,19 @@ class GuardianController extends Controller
         
         $guardian->students()->detach($studentId);
 
+        $this->syncGuardianProfileStatus($guardian);
+
         return response()->json([
             'status' => 'success', 
             'message' => 'Student unlinked successfully.'
         ]);
+    }
+
+    private function syncGuardianProfileStatus(Guardian $guardian): void
+    {
+        $hasAttachedStudents = $guardian->students()->exists();
+
+        $guardian->status = $hasAttachedStudents ? 'active' : 'inactive';
+        $guardian->save();
     }
 }

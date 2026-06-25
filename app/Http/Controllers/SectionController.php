@@ -223,14 +223,16 @@ class SectionController extends Controller
         }
 
         /**
-         * If pending -> active
-         * If active -> inactive
-         * If inactive -> active
+         * active   -> inactive
+         * inactive -> pending
+         * pending  -> active
          */
-        if ($section->status === 'pending' || $section->status === 'inactive') {
-            $section->status = 'active';
-        } else {
+        if ($section->status === 'active') {
             $section->status = 'inactive';
+        } elseif ($section->status === 'inactive') {
+            $section->status = 'pending';
+        } else {
+            $section->status = 'active';
         }
         
         $section->save();

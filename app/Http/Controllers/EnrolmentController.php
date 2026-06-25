@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Enrolment;
+use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
@@ -76,6 +77,12 @@ class EnrolmentController extends Controller
                 'status'     => 'active',
             ]);
 
+            $student = Student::find($request->student_id);
+            if ($student && $student->status !== 'active') {
+                $student->status = 'active';
+                $student->save();
+            }
+
             $enrolment->load(['student.user', 'section']);
 
             return response()->json([
@@ -144,6 +151,8 @@ class EnrolmentController extends Controller
             ], 404);
         }
 
+        $oldStudentId = $enrolment->student_id;
+
         $validator = Validator::make($request->all(), [
             'student_id' => 'nullable|exists:students,id',
             'section_id' => 'nullable|exists:sections,id',
@@ -175,6 +184,12 @@ class EnrolmentController extends Controller
         }
 
         $enrolment->update($request->only(['student_id', 'section_id', 'note']));
+        
+        if ($request->has('student_id') && $oldStudentId != $request->student_id) {
+            $this->syncStudentProfileStatus($oldStudentId);
+        }
+        $this->syncStudentProfileStatus($enrolment->student_id);
+
         $enrolment->load(['student.user', 'section']);
 
         return response()->json([
@@ -217,6 +232,8 @@ class EnrolmentController extends Controller
         
         $enrolment->save();
 
+        $this->syncStudentProfileStatus($enrolment->student_id);
+
         return response()->json([
             'status'  => 'success',
             'message' => "Enrolment status updated to {$enrolment->status}",
@@ -228,5 +245,18 @@ class EnrolmentController extends Controller
                 ]
             ]
         ], 200);
+    }
+
+    private function syncStudentProfileStatus($studentId): void
+    {
+        $student = Student::find($studentId);
+        if (!$student) return;
+
+        $hasActiveEnrolments = Enrolment::where('student_id', $studentId)
+            ->where('status', 'active')
+            ->exists();
+
+        $student->status = $hasActiveEnrolments ? 'active' : 'inactive';
+        $student->save();
     }
 }

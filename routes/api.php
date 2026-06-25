@@ -39,17 +39,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('sections', SectionController::class);
 
     // Lecturers
-    Route::patch('lecturers/{id}/toggle', [LecturerController::class, 'toggleStatus']);
     Route::apiResource('lecturers', LecturerController::class);
 
     // Students
-    Route::patch('students/{id}/toggle', [StudentController::class, 'toggleStatus']);
     Route::apiResource('students', StudentController::class);
 
     // Guardians
     Route::delete('guardians/{guardianId}/detach-student/{studentId}', [GuardianController::class, 'detachStudent']);
     Route::post('guardians/{guardianId}/attach-student', [GuardianController::class, 'attachStudent']);
-    Route::patch('guardians/{id}/toggle', [GuardianController::class, 'toggleStatus']);
     Route::apiResource('guardians', GuardianController::class);
 
     // Section Assignments

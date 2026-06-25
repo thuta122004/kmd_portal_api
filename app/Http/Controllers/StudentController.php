@@ -91,7 +91,7 @@ class StudentController extends Controller
                 'gender'             => $request->gender,
                 'phone'              => $request->phone,
                 'address'            => $request->address,
-                'status'             => 'active',
+                'status'             => 'inactive',
             ]);
 
             $student->load(['user', 'guardians.user']);
@@ -239,33 +239,6 @@ class StudentController extends Controller
                         ];
                     }),
                     'created_at'         => $student->created_at->format('Y-m-d H:i:s'),
-                ]
-            ]
-        ], 200);
-    }
-
-    public function toggleStatus($id): JsonResponse
-    {
-        $student = Student::find($id);
-
-        if (!$student) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Student profile not found'
-            ], 404);
-        }
-
-        $student->status = ($student->status === 'active') ? 'inactive' : 'active';
-        $student->save();
-
-        return response()->json([
-            'status'  => 'success',
-            'message' => "Student status updated to {$student->status}",
-            'data'    => [
-                'student' => [
-                    'id'         => $student->id,
-                    'status'     => $student->status,
-                    'updated_at' => $student->updated_at->format('Y-m-d H:i:s'),
                 ]
             ]
         ], 200);

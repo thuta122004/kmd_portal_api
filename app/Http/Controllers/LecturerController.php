@@ -173,31 +173,4 @@ class LecturerController extends Controller
             ]
         ], 200);
     }
-
-    public function toggleStatus($id): JsonResponse
-    {
-        $lecturer = Lecturer::find($id);
-
-        if (!$lecturer) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Lecturer profile not found'
-            ], 404);
-        }
-
-        $lecturer->status = ($lecturer->status === 'active') ? 'inactive' : 'active';
-        $lecturer->save();
-
-        return response()->json([
-            'status'  => 'success',
-            'message' => "Lecturer status updated to {$lecturer->status}",
-            'data'    => [
-                'lecturer' => [
-                    'id'         => $lecturer->id,
-                    'status'     => $lecturer->status,
-                    'updated_at' => $lecturer->updated_at->format('Y-m-d H:i:s'),
-                ]
-            ]
-        ], 200);
-    }
 }
