@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Timetable;
+use App\Models\SectionAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
@@ -74,7 +75,7 @@ class TimetableController extends Controller
             ], 422);
         }
 
-        $currentAssignment = \App\Models\SectionAssignment::find($request->section_assignments_id);
+        $currentAssignment = SectionAssignment::find($request->section_assignments_id);
         if ($currentAssignment) {
             $lecturerBusy = Timetable::where('status', 'active')
                 ->where('day_of_week', $request->day_of_week)
@@ -216,7 +217,7 @@ class TimetableController extends Controller
             ], 422);
         }
 
-        $currentAssignment = \App\Models\SectionAssignment::find($sectionAssignmentId);
+        $currentAssignment = SectionAssignment::find($sectionAssignmentId);
         if ($currentAssignment) {
             $lecturerBusy = Timetable::where('id', '!=', $timetable->id)
                 ->where('status', 'active')
@@ -298,7 +299,7 @@ class TimetableController extends Controller
 
         if ($targetStatus === 'active') {
             
-            $currentAssignment = \App\Models\SectionAssignment::find($timetable->section_assignments_id);
+            $currentAssignment = SectionAssignment::find($timetable->section_assignments_id);
             if ($currentAssignment) {
                 $lecturerBusy = Timetable::where('id', '!=', $timetable->id)
                     ->where('status', 'active')
