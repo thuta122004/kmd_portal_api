@@ -208,7 +208,14 @@ class UserController extends Controller
             ], 404);
         }
 
-        $user->status = ($user->status === 'active') ? 'inactive' : 'active';
+        if ($user->status === 'active') {
+            $user->status = 'inactive';
+        } elseif ($user->status === 'inactive') {
+            $user->status = 'suspended';
+        } else {
+            $user->status = 'active';
+        }
+
         $user->save();
 
         return response()->json([

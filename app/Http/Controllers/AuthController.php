@@ -91,6 +91,17 @@ class AuthController extends Controller
             ], 404);
         }
 
+        if ($user->status !== 'active') {
+            $message = ($user->status === 'suspended') 
+                ? 'Your account has been suspended. Please contact support.' 
+                : 'Your account is currently inactive. Please contact the administrator.';
+            
+            return response()->json([
+                'status'  => 'error',
+                'message' => $message
+            ], 403);
+        }
+
         if (!Hash::check($request->password, $user->password)) {
             return response()->json([
                 'status'  => 'error',
@@ -108,7 +119,7 @@ class AuthController extends Controller
                     'id'         => $user->id,
                     'name'       => $user->name,
                     'email'      => $user->email,
-                    'role_id'  => $user->role->id,
+                    'role_id'    => $user->role->id,
                     'role_name'  => $user->role->name,
                     'status'     => $user->status,
                     'created_at' => $user->created_at->format('Y-m-d H:i:s'),
