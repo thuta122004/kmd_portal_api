@@ -58,7 +58,7 @@ class SectionAssignmentController extends Controller
             ],
             'lecturer_id' => [
                 'required',
-                Rule::exists('lecturers', 'id')->where('status', 'active'),
+                Rule::exists('lecturers', 'id'),
                 Rule::unique('section_assignments')->where(function ($query) use ($request) {
                     return $query->where('section_id', $request->section_id)
                                 ->where('subject_id', $request->subject_id)
@@ -69,7 +69,6 @@ class SectionAssignmentController extends Controller
         ], [
             'section_id.exists'  => 'The selected section is inactive or invalid.',
             'subject_id.exists'  => 'The selected subject is inactive or invalid.',
-            'lecturer_id.exists' => 'The selected lecturer is inactive or invalid.',
             'lecturer_id.unique' => 'This lecturer is already assigned to this subject in this section.'
         ]);
 
@@ -107,11 +106,7 @@ class SectionAssignmentController extends Controller
             'status'      => 'active',
         ]);
 
-        $lecturer = Lecturer::find($request->lecturer_id);
-        if ($lecturer && $lecturer->status !== 'active') {
-            $lecturer->status = 'active';
-            $lecturer->save();
-        }
+        $this->syncLecturerProfileStatus($assignment->lecturer_id);
 
         $assignment->load(['section', 'subject', 'lecturer.user']);
 
@@ -188,9 +183,7 @@ class SectionAssignmentController extends Controller
             ],
             'lecturer_id' => [
                 'nullable',
-                Rule::exists('lecturers', 'id')->where(function ($query) use ($assignment) {
-                    $query->where('status', 'active')->orWhere('id', $assignment->lecturer_id);
-                }),
+                Rule::exists('lecturers', 'id'),
                 Rule::unique('section_assignments')->where(function ($query) use ($request, $assignment) {
                     $sectionId = $request->input('section_id', $assignment->section_id);
                     $subjectId = $request->input('subject_id', $assignment->subject_id);
@@ -206,7 +199,6 @@ class SectionAssignmentController extends Controller
         ], [
             'section_id.exists'  => 'The selected section is inactive or invalid.',
             'subject_id.exists'  => 'The selected subject is inactive or invalid.',
-            'lecturer_id.exists' => 'The selected lecturer is inactive or invalid.',
             'lecturer_id.unique' => 'This lecturer is already assigned to this subject in this section.'
         ]);
 
@@ -321,14 +313,24 @@ class SectionAssignmentController extends Controller
 
     private function syncLecturerProfileStatus($lecturerId): void
     {
-        $lecturer = Lecturer::find($lecturerId);
+        $lecturer = Lecturer::with('user')->find($lecturerId);
         if (!$lecturer) return;
 
         $hasActiveAssignments = SectionAssignment::where('lecturer_id', $lecturerId)
             ->where('status', 'active')
             ->exists();
 
-        $lecturer->status = $hasActiveAssignments ? 'active' : 'inactive';
-        $lecturer->save();
+        $newStatus = $hasActiveAssignments ? 'active' : 'inactive';
+
+        \DB::transaction(function () use ($lecturer, $newStatus) {
+            $lecturer->status = $newStatus;
+            $lecturer->save();
+
+            if ($lecturer->user) {
+                $user = $lecturer->user->fresh(); 
+                $user->status = $newStatus;
+                $user->save();
+            }
+        });
     }
 }

@@ -66,7 +66,7 @@ class LecturerController extends Controller
                 'employee_id'   => $request->employee_id,
                 'department'    => $request->department,
                 'qualification' => $request->qualification,
-                'status'        => 'active',
+                'status'        => 'inactive',
             ]);
 
             $lecturer->load('user');

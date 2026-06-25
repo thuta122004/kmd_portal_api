@@ -75,7 +75,7 @@ class GuardianController extends Controller
                 'phone'      => $request->phone,
                 'occupation' => $request->occupation,
                 'address'    => $request->address,
-                'status'     => 'active',
+                'status'     => 'inactive',
             ]);
 
             $guardian->load(['user', 'students.user']);
@@ -244,9 +244,19 @@ class GuardianController extends Controller
 
     private function syncGuardianProfileStatus(Guardian $guardian): void
     {
-        $hasAttachedStudents = $guardian->students()->exists();
+        $guardian->load('user');
 
-        $guardian->status = $hasAttachedStudents ? 'active' : 'inactive';
-        $guardian->save();
+        $hasAttachedStudents = $guardian->students()->exists();
+        $newStatus = $hasAttachedStudents ? 'active' : 'inactive';
+
+        \DB::transaction(function () use ($guardian, $newStatus) {
+            $guardian->status = $newStatus;
+            $guardian->save();
+
+            if ($guardian->user) {
+                $guardian->user->status = $newStatus;
+                $guardian->user->save();
+            }
+        });
     }
 }

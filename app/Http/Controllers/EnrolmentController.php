@@ -77,11 +77,7 @@ class EnrolmentController extends Controller
                 'status'     => 'active',
             ]);
 
-            $student = Student::find($request->student_id);
-            if ($student && $student->status !== 'active') {
-                $student->status = 'active';
-                $student->save();
-            }
+            $this->syncStudentProfileStatus($enrolment->student_id);
 
             $enrolment->load(['student.user', 'section']);
 
@@ -249,14 +245,21 @@ class EnrolmentController extends Controller
 
     private function syncStudentProfileStatus($studentId): void
     {
-        $student = Student::find($studentId);
+        $student = Student::with('user')->find($studentId);
         if (!$student) return;
 
         $hasActiveEnrolments = Enrolment::where('student_id', $studentId)
             ->where('status', 'active')
             ->exists();
 
-        $student->status = $hasActiveEnrolments ? 'active' : 'inactive';
+        $newStatus = $hasActiveEnrolments ? 'active' : 'inactive';
+
+        $student->status = $newStatus;
         $student->save();
+
+        if ($student->user) {
+            $student->user->status = $newStatus;
+            $student->user->save();
+        }
     }
 }
