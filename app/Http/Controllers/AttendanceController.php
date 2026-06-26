@@ -24,6 +24,10 @@ class AttendanceController extends Controller
             'timetable.sectionAssignments.lecturer.user'
         ]);
 
+        if ($request->has('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
@@ -211,7 +215,12 @@ class AttendanceController extends Controller
 
     public function show($id): JsonResponse
     {
-        $attendance = Attendance::with(['user', 'timetable'])->find($id);
+        $attendance = Attendance::with([
+            'user', 
+            'timetable.sectionAssignments.subject',
+            'timetable.sectionAssignments.section',
+            'timetable.sectionAssignments.lecturer.user'
+        ])->find($id);
 
         if (!$attendance) {
             return response()->json([
@@ -220,19 +229,26 @@ class AttendanceController extends Controller
             ], 404);
         }
 
+        $assignment = $attendance->timetable->sectionAssignments;
+
         return response()->json([
             'status'  => 'success',
             'message' => 'Attendance details retrieved',
             'data'    => [
                 'attendance' => [
-                    'id'           => $attendance->id,
-                    'user_id'      => $attendance->user_id,
-                    'user_name'    => $attendance->user->name,
-                    'timetable_id' => $attendance->timetable_id,
-                    'date'         => $attendance->date,
-                    'status'       => $attendance->status,
-                    'remark'       => $attendance->remark,
-                    'created_at'   => $attendance->created_at->format('Y-m-d H:i:s'),
+                    'id'            => $attendance->id,
+                    'user_id'       => $attendance->user_id,
+                    'user_name'     => $attendance->user->name,
+                    'timetable_id'  => $attendance->timetable_id,
+                    'subject_code'  => $assignment->subject->code,
+                    'section_code'  => $assignment->section->code,
+                    'lecturer_name' => $assignment->lecturer->user->name,
+                    'day_of_week'   => $attendance->timetable->day_of_week,
+                    'time_slot'     => $attendance->timetable->start_time . ' - ' . $attendance->timetable->end_time,
+                    'date'          => $attendance->date,
+                    'status'        => $attendance->status,
+                    'remark'        => $attendance->remark,
+                    'created_at'    => $attendance->created_at->format('Y-m-d H:i:s'),
                 ]
             ]
         ], 200);
