@@ -417,84 +417,79 @@ class AttendanceController extends Controller
 
     public function refreshAbsences(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'timetable_id' => 'required|exists:timetables,id',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Validation failed',
-                'errors'  => $validator->errors()
-            ], 422);
-        }
-
         try {
-            $timetableId = $request->timetable_id;
+            $timetables = Timetable::with('sectionAssignments.lecturer.user')->get();
+
+            if ($timetables->isEmpty()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'No active sessions found to refresh.'
+                ], 200);
+            }
+
+            $totalAbsencesLogged = 0;
             $today = Carbon::now();
-            $dayName = $today->format('l'); 
-            $dateStr = $today->toDateString();
 
-            $timetable = Timetable::with('sectionAssignments')->find($timetableId);
+            foreach ($timetables as $timetable) {
+                $assignment = $timetable->sectionAssignments;
+                if (!$assignment) continue;
 
-            if (strcasecmp($dayName, $timetable->day_of_week) !== 0) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => "Calendar Day Mismatch: You can only refresh active sessions scheduled for today ({$dayName}). This slot is for {$timetable->day_of_week}s."
-                ], 400);
-            }
+                if (strcasecmp($today->format('l'), $timetable->day_of_week) === 0) {
+                    $targetDate = $today->toDateString();
+                } else {
+                    $targetDate = Carbon::parse("last {$timetable->day_of_week}")->toDateString();
+                }
 
-            $assignment = $timetable->sectionAssignments;
-            if (!$assignment) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Class config profile layout missing for this session.'
-                ], 422);
-            }
+                $enrolledStudentIds = DB::table('enrolments')
+                    ->where('section_id', $assignment->section_id)
+                    ->where('status', 'active')
+                    ->pluck('student_id');
 
-            $enrolledStudentIds = DB::table('enrolments')
-                ->where('section_id', $assignment->section_id)
-                ->where('status', 'active')
-                ->pluck('student_id');
+                $enrolledStudents = Student::whereIn('id', $enrolledStudentIds)->get();
 
-            $enrolledStudents = Student::whereIn('id', $enrolledStudentIds)->get();
+                foreach ($enrolledStudents as $student) {
+                    $totalAbsencesLogged += $this->logAttendanceIfMissing($student->user_id, $timetable->id, $targetDate);
+                }
 
-            $absencesLogged = 0;
-
-            foreach ($enrolledStudents as $student) {
-                $hasLogged = Attendance::where('user_id', $student->user_id)
-                    ->where('timetable_id', $timetableId)
-                    ->where('date', $dateStr)
-                    ->exists();
-
-                if (!$hasLogged) {
-                    $absenceRow = new Attendance();
-                    $absenceRow->user_id = $student->user_id;
-                    $absenceRow->timetable_id = $timetableId;
-                    $absenceRow->date = $dateStr;
-                    $absenceRow->status = 'absent';
-                    $absenceRow->remark = 'Auto-filled via Lecturer Dashboard';
-                    $absenceRow->save();
-
-                    $absencesLogged++;
+                if ($assignment->lecturer && $assignment->lecturer->user) {
+                    $lecturerUserId = $assignment->lecturer->user->id;
+                    $totalAbsencesLogged += $this->logAttendanceIfMissing($lecturerUserId, $timetable->id, $targetDate);
                 }
             }
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Attendance sheet evaluated successfully.',
+                'message' => 'Global attendance evaluation (including lecturers) completed.',
                 'data' => [
-                    'timetable_id' => (int)$timetableId,
-                    'date' => $dateStr,
-                    'no_shows_auto_filled' => $absencesLogged
+                    'total_no_shows_auto_filled' => $totalAbsencesLogged
                 ]
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Server Error: Could not compute sheet auto-fill.'
+                'message' => 'Server Error: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    private function logAttendanceIfMissing($userId, $timetableId, $date)
+    {
+        $hasLogged = Attendance::where('user_id', $userId)
+            ->where('timetable_id', $timetableId)
+            ->where('date', $date)
+            ->exists();
+
+        if (!$hasLogged) {
+            Attendance::create([
+                'user_id'      => $userId,
+                'timetable_id' => $timetableId,
+                'date'         => $date,
+                'status'       => 'absent',
+                'remark'       => 'Auto-filled via Global Refresh'
+            ]);
+            return 1;
+        }
+        return 0;
     }
 }
