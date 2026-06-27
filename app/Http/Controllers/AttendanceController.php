@@ -368,7 +368,7 @@ class AttendanceController extends Controller
         ], 200);
     }
 
-    public function toggleStatus($id): JsonResponse
+    public function toggleStatus(Request $request, $id): JsonResponse
     {
         $attendance = Attendance::with(['user', 'timetable'])->find($id);
 
@@ -386,8 +386,15 @@ class AttendanceController extends Controller
             'excused'  => 'present',
         ];
 
-        $attendance->status = $statusCycle[$attendance->status] ?? 'present';
-        $attendance->remark = "Status manually cycled.";
+        $newStatus = $statusCycle[$attendance->status] ?? 'present';
+        $attendance->status = $newStatus;
+
+        if ($newStatus === 'excused' && $request->has('remark')) {
+            $attendance->remark = $request->input('remark');
+        } else {
+            $attendance->remark = "Status manually changed to {$newStatus}.";
+        }
+
         $attendance->save();
 
         return response()->json([
@@ -466,7 +473,7 @@ class AttendanceController extends Controller
                     $absenceRow->timetable_id = $timetableId;
                     $absenceRow->date = $dateStr;
                     $absenceRow->status = 'absent';
-                    $absenceRow->remark = 'Auto-filled via Lecturer Dashboard Refresh Action.';
+                    $absenceRow->remark = 'Auto-filled via Lecturer Dashboard';
                     $absenceRow->save();
 
                     $absencesLogged++;
