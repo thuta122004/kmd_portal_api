@@ -380,10 +380,10 @@ class AttendanceController extends Controller
         }
         
         $statusCycle = [
-            'present'  => 'absent',
-            'absent'   => 'late',
-            'late'     => 'excused',
-            'excused'  => 'present',
+            'absent'  => 'present',
+            'present' => 'late',
+            'late'    => 'excused',
+            'excused' => 'absent',
         ];
 
         $newStatus = $statusCycle[$attendance->status] ?? 'present';
