@@ -74,6 +74,27 @@ class AttendanceController extends Controller
             $userId = $request->user_id;
             $timetableId = $request->timetable_id;
 
+            $timetable = Timetable::with('sectionAssignments.section')->find($timetableId);
+            if (!$timetable) {
+                $validator->errors()->add('timetable_id', 'Timetable not found.');
+                return;
+            }
+
+            $checkInTime = $request->has('created_at') 
+                ? Carbon::createFromFormat('Y-m-d H:i:s', $request->created_at) 
+                : Carbon::now();
+
+            $section = $timetable->sectionAssignments->section ?? null;
+            if ($section) {
+                $startDate = Carbon::parse($section->start_date);
+                $endDate = Carbon::parse($section->end_date);
+
+                if ($checkInTime->lt($startDate) || $checkInTime->gt($endDate)) {
+                    $validator->errors()->add('created_at', "Date Error: Attendance can only be logged between {$section->start_date} and {$section->end_date}.");
+                    return;
+                }
+            }
+
             $student = Student::where('user_id', $userId)->first();
             $lecturer = Lecturer::where('user_id', $userId)->first();
 
@@ -154,8 +175,7 @@ class AttendanceController extends Controller
         }
 
         try {
-            $timetable = Timetable::findOrFail($request->timetable_id);
-            
+            $timetable = Timetable::find($request->timetable_id);
             $checkInTime = $request->has('created_at') 
                 ? Carbon::createFromFormat('Y-m-d H:i:s', $request->created_at) 
                 : Carbon::now();
@@ -259,112 +279,22 @@ class AttendanceController extends Controller
         $attendance = Attendance::find($id);
 
         if (!$attendance) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Attendance record not found'
-            ], 404);
+            return response()->json(['status' => 'error', 'message' => 'Record not found'], 404);
         }
 
-        $validator = Validator::make($request->all(), [
-            'user_id'      => 'nullable|exists:users,id',
-            'timetable_id' => 'nullable|exists:timetables,id',
-            'status'       => 'in:present,absent,late,excused',
-            'created_at'   => 'nullable|date_format:Y-m-d H:i:s',
-            'remark'       => 'nullable|string',
+        $request->validate([
+            'status' => 'required|in:present,absent,late,excused',
+            'remark' => 'nullable|string',
         ]);
 
-        $validator->after(function ($validator) use ($request, $attendance) {
-            $userId = $request->input('user_id', $attendance->user_id);
-            $timetableId = $request->input('timetable_id', $attendance->timetable_id);
-
-            $student = Student::where('user_id', $userId)->first();
-            $lecturer = Lecturer::where('user_id', $userId)->first();
-
-            if ($request->has('user_id') && !$student && !$lecturer) {
-                $validator->errors()->add('user_id', 'The updated user must have either an active student or lecturer profile.');
-                return;
-            }
-
-            $checkTimeStr = $request->input('created_at', $attendance->created_at->format('Y-m-d H:i:s'));
-            $checkInTime = Carbon::createFromFormat('Y-m-d H:i:s', $checkTimeStr);
-            $targetTimetable = Timetable::with('sectionAssignments')->find($timetableId);
-            
-            if ($targetTimetable) {
-                $incomingDay = $checkInTime->format('l');
-                if (strcasecmp($incomingDay, $targetTimetable->day_of_week) !== 0) {
-                    $validator->errors()->add('created_at', "Invalid Day: This class belongs on a {$targetTimetable->day_of_week}, your input target is a {$incomingDay}.");
-                    return;
-                }
-
-                $assignment = $targetTimetable->sectionAssignments;
-                if ($assignment) {
-                    if ($student) {
-                        $targetSectionId = $assignment->section_id;
-
-                        $isEnrolledInSection = DB::table('enrolments')
-                            ->where('student_id', $student->id)
-                            ->where('section_id', $targetSectionId)
-                            ->where('status', 'active')
-                            ->exists();
-
-                        if (!$isEnrolledInSection) {
-                            $validator->errors()->add('user_id', 'Enrollment Error: Student is not registered for the targeted section segment.');
-                            return;
-                        }
-                    } elseif ($lecturer && $assignment->lecturer_id != $lecturer->id) {
-                        $validator->errors()->add('user_id', 'Lecturer Error: Assigned Lecturer profile clash.');
-                        return;
-                    }
-                }
-            }
-
-            if ($request->has('user_id') || $request->has('timetable_id') || $request->has('created_at')) {
-                $targetDate = $checkInTime->toDateString(); 
-
-                $duplicateExists = Attendance::where('user_id', $userId)
-                    ->where('timetable_id', $timetableId)
-                    ->where('date', $targetDate)
-                    ->where('id', '!=', $attendance->id)
-                    ->exists();
-
-                if ($duplicateExists) {
-                    $validator->errors()->add('timetable_id', 'Attendance for this user has already been logged for this class today.');
-                }
-            }
-        });
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Validation failed',
-                'errors'  => $validator->errors()
-            ], 422);
-        }
-
-        $attendance->update($request->only(['user_id', 'timetable_id', 'status', 'remark', 'created_at']));
-        
-        if ($request->has('created_at') && $request->filled('created_at')) {
-            $attendance->date = Carbon::parse($request->created_at)->toDateString();
-            $attendance->save();
-        }
-
-        $attendance->load(['user', 'timetable']);
+        $attendance->status = $request->status;
+        $attendance->remark = $request->remark;
+        $attendance->save();
 
         return response()->json([
-            'status'  => 'success',
-            'message' => 'Attendance record updated successfully',
-            'data'    => [
-                'attendance' => [
-                    'id'           => $attendance->id,
-                    'user_id'      => $attendance->user_id,
-                    'user_name'    => $attendance->user->name,
-                    'timetable_id' => $attendance->timetable_id,
-                    'date'         => $attendance->date,
-                    'status'       => $attendance->status,
-                    'remark'       => $attendance->remark,
-                    'created_at'   => $attendance->created_at->format('Y-m-d H:i:s'),
-                ]
-            ]
+            'status' => 'success',
+            'message' => 'Status updated successfully',
+            'data' => ['attendance' => $attendance]
         ], 200);
     }
 
@@ -418,65 +348,87 @@ class AttendanceController extends Controller
     public function refreshAbsences(Request $request): JsonResponse
     {
         try {
-            $timetables = Timetable::where('status', 'active')
-            ->with('sectionAssignments.lecturer.user')
-            ->get();
+            $startDate = $request->has('start_date') ? Carbon::parse($request->start_date) : Carbon::now();
+            $today = Carbon::now();
 
-            if ($timetables->isEmpty()) {
-                return response()->json([
-                    'status' => 'success',
-                    'message' => 'No active sessions found to refresh.'
-                ], 200);
+            if ($startDate->diffInDays($today) > 30) {
+                return response()->json(['status' => 'error', 'message' => 'Cannot refresh more than 30 days at once.'], 422);
             }
 
             $totalAbsencesLogged = 0;
-            $today = Carbon::now();
 
-            foreach ($timetables as $timetable) {
-                $assignment = $timetable->sectionAssignments;
-                if (!$assignment) continue;
+            for ($date = $startDate; $date->lte($today); $date->addDay()) {
+                
+                $dateString = $date->toDateString();
+                $dayName = $date->format('l');
 
-                $isToday = (strcasecmp($today->format('l'), $timetable->day_of_week) === 0);
+                $timetables = Timetable::where('day_of_week', $dayName)
+                    ->where('status', 'active')
+                    ->with('sectionAssignments.section', 'sectionAssignments.lecturer.user')
+                    ->get();
 
-                if ($isToday) {
-                    $targetDate = $today->toDateString();
+                foreach ($timetables as $timetable) {
+                    $assignment = $timetable->sectionAssignments;
+                    if (!$assignment || !$assignment->section) continue;
 
-                    if (Carbon::parse($timetable->start_time)->gt($today)) {
+                    $section = $assignment->section;
+                    if ($date->lt(Carbon::parse($section->start_date)) || $date->gt(Carbon::parse($section->end_date))) {
                         continue;
                     }
-                } else {
-                    $targetDate = Carbon::parse("last {$timetable->day_of_week}")->toDateString();
-                }
 
-                $enrolledStudentIds = DB::table('enrolments')
-                    ->where('section_id', $assignment->section_id)
-                    ->where('status', 'active')
-                    ->pluck('student_id');
+                    if ($date->isToday() && Carbon::parse($timetable->start_time)->gt($today)) {
+                        continue;
+                    }
 
-                $enrolledStudents = Student::whereIn('id', $enrolledStudentIds)->get();
+                    $existingUserIds = Attendance::where('timetable_id', $timetable->id)
+                        ->where('date', $dateString)
+                        ->pluck('user_id')
+                        ->toArray();
 
-                foreach ($enrolledStudents as $student) {
-                    $totalAbsencesLogged += $this->logAttendanceIfMissing($student->user_id, $timetable->id, $targetDate);
-                }
+                    $studentIds = DB::table('enrolments')
+                        ->where('section_id', $assignment->section_id)
+                        ->where('status', 'active')
+                        ->pluck('student_id');
 
-                if ($assignment->lecturer && $assignment->lecturer->user) {
-                    $lecturerUserId = $assignment->lecturer->user->id;
-                    $totalAbsencesLogged += $this->logAttendanceIfMissing($lecturerUserId, $timetable->id, $targetDate);
+                    $enrolledStudents = Student::whereIn('id', $studentIds)->get();
+
+                    foreach ($enrolledStudents as $student) {
+                        if (!in_array($student->user_id, $existingUserIds)) {
+                            Attendance::create([
+                                'user_id'      => $student->user_id,
+                                'timetable_id' => $timetable->id,
+                                'date'         => $dateString,
+                                'status'       => 'absent',
+                                'remark'       => 'Auto-filled via Global Refresh'
+                            ]);
+                            $totalAbsencesLogged++;
+                        }
+                    }
+
+                    if ($assignment->lecturer && $assignment->lecturer->user) {
+                        $lUserId = $assignment->lecturer->user->id;
+                        if (!in_array($lUserId, $existingUserIds)) {
+                            Attendance::create([
+                                'user_id'      => $lUserId,
+                                'timetable_id' => $timetable->id,
+                                'date'         => $dateString,
+                                'status'       => 'absent',
+                                'remark'       => 'Auto-filled via Global Refresh'
+                            ]);
+                            $totalAbsencesLogged++;
+                        }
+                    }
                 }
             }
+
             return response()->json([
                 'status' => 'success',
-                'message' => 'Global attendance evaluation (including lecturers) completed.',
-                'data' => [
-                    'total_no_shows_auto_filled' => $totalAbsencesLogged
-                ]
+                'message' => 'Attendance evaluation completed from ' . $startDate->toDateString() . ' to ' . $today->toDateString(),
+                'data' => ['total_no_shows_auto_filled' => $totalAbsencesLogged]
             ], 200);
 
         } catch (Exception $e) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Server Error: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
 
