@@ -418,7 +418,9 @@ class AttendanceController extends Controller
     public function refreshAbsences(Request $request): JsonResponse
     {
         try {
-            $timetables = Timetable::with('sectionAssignments.lecturer.user')->get();
+            $timetables = Timetable::where('status', 'active')
+            ->with('sectionAssignments.lecturer.user')
+            ->get();
 
             if ($timetables->isEmpty()) {
                 return response()->json([
@@ -434,8 +436,14 @@ class AttendanceController extends Controller
                 $assignment = $timetable->sectionAssignments;
                 if (!$assignment) continue;
 
-                if (strcasecmp($today->format('l'), $timetable->day_of_week) === 0) {
+                $isToday = (strcasecmp($today->format('l'), $timetable->day_of_week) === 0);
+
+                if ($isToday) {
                     $targetDate = $today->toDateString();
+
+                    if (Carbon::parse($timetable->start_time)->gt($today)) {
+                        continue;
+                    }
                 } else {
                     $targetDate = Carbon::parse("last {$timetable->day_of_week}")->toDateString();
                 }
@@ -456,7 +464,6 @@ class AttendanceController extends Controller
                     $totalAbsencesLogged += $this->logAttendanceIfMissing($lecturerUserId, $timetable->id, $targetDate);
                 }
             }
-
             return response()->json([
                 'status' => 'success',
                 'message' => 'Global attendance evaluation (including lecturers) completed.',
