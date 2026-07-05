@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
+use App\Models\Enrolment;
 use App\Models\Timetable;
 use App\Models\Student;
+use App\Models\Section;
 use App\Models\Lecturer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -450,5 +452,83 @@ class AttendanceController extends Controller
             return 1;
         }
         return 0;
+    }
+
+    public function getStudentAttendanceReport($studentId, $sectionId): JsonResponse
+    {
+        $student = Student::with('user')->find($studentId);
+        $section = Section::find($sectionId);
+
+        if (!$student || !$section) {
+            return response()->json(['status' => 'error', 'message' => 'Student or Section not found'], 404);
+        }
+
+        $allAttendanceRecords = Attendance::where('user_id', $student->user_id)
+            ->whereHas('timetable.sectionAssignments', function ($query) use ($sectionId) {
+                $query->where('section_id', $sectionId);
+            })
+            ->get();
+
+        $totalClasses = $allAttendanceRecords->count();
+        $attendedClasses = $allAttendanceRecords->whereIn('status', ['present', 'excused'])->count();
+        
+        $percentage = ($totalClasses > 0) ? ($attendedClasses / $totalClasses) * 100 : 0;
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'student_name' => $student->user->name,
+                'section_name' => $section->name,
+                'percentage'   => round($percentage, 2),
+                'attended'     => $attendedClasses,
+                'total'        => $totalClasses
+            ]
+        ]);
+    }
+
+    public function getSectionAttendanceSummary($sectionId): JsonResponse
+    {
+        $enrolments = Enrolment::where('section_id', $sectionId)
+            ->with('student.user')
+            ->get();
+
+        $allAttendance = Attendance::whereHas('timetable.sectionAssignments', function ($query) use ($sectionId) {
+            $query->where('section_id', $sectionId);
+        })->get()->groupBy('user_id');
+
+        $reportList = [];
+        $distribution = ['0-25%' => 0, '26-50%' => 0, '51-75%' => 0, '76-100%' => 0];
+
+        foreach ($enrolments as $enrolment) {
+            $student = $enrolment->student;
+            $studentRecords = $allAttendance->get($student->user_id, collect());
+            
+            $totalClasses = $studentRecords->count();
+            $attendedClasses = $studentRecords->whereIn('status', ['present', 'excused'])->count();
+            
+            $percentage = ($totalClasses > 0) ? ($attendedClasses / $totalClasses) * 100 : 0;
+
+            $reportList[] = [
+                'name'       => $student->user->name,
+                'reg_number' => $student->student_reg_number,
+                'attended'   => $attendedClasses,
+                'total'      => $totalClasses,
+                'percentage' => round($percentage, 2)
+            ];
+
+            if ($percentage <= 25) $distribution['0-25%']++;
+            elseif ($percentage <= 50) $distribution['26-50%']++;
+            elseif ($percentage <= 75) $distribution['51-75%']++;
+            else $distribution['76-100%']++;
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'list'         => $reportList,
+                'distribution' => $distribution,
+                'overall_avg'  => count($reportList) > 0 ? round(collect($reportList)->avg('percentage'), 2) : 0
+            ]
+        ]);
     }
 }

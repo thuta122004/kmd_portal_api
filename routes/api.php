@@ -42,6 +42,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('lecturers', LecturerController::class);
 
     // Students
+    Route::get('/sections/{sectionId}/attendance-summary', [AttendanceController::class, 'getSectionAttendanceSummary']);
+    Route::get('/students/{studentId}/attendance-report/{sectionId}', [AttendanceController::class, 'getStudentAttendanceReport']);
     Route::apiResource('students', StudentController::class);
 
     // Guardians
