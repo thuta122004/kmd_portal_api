@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 class SectionAssignmentController extends Controller
 {
@@ -322,7 +323,7 @@ class SectionAssignmentController extends Controller
 
         $newStatus = $hasActiveAssignments ? 'active' : 'inactive';
 
-        \DB::transaction(function () use ($lecturer, $newStatus) {
+        DB::transaction(function () use ($lecturer, $newStatus) {
             $lecturer->status = $newStatus;
             $lecturer->save();
 

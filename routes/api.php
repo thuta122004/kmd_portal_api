@@ -34,6 +34,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('subjects', SubjectController::class);
 
     // Sections
+
+    Route::get('/sections/{sectionId}/attendance-summary', [AttendanceController::class, 'getSectionAttendanceSummary']);
+    Route::get('/sections/{sectionId}/student-subject-attendance', [AttendanceController::class, 'getStudentSubjectAttendanceReport']);
     Route::get('sections/{id}/students', [SectionController::class, 'students']);
     Route::patch('sections/{id}/toggle', [SectionController::class, 'toggleStatus']);
     Route::apiResource('sections', SectionController::class);
@@ -42,7 +45,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('lecturers', LecturerController::class);
 
     // Students
-    Route::get('/sections/{sectionId}/attendance-summary', [AttendanceController::class, 'getSectionAttendanceSummary']);
     Route::get('/students/{studentId}/attendance-report/{sectionId}', [AttendanceController::class, 'getStudentAttendanceReport']);
     Route::apiResource('students', StudentController::class);
 
