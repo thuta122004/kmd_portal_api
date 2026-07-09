@@ -434,26 +434,6 @@ class AttendanceController extends Controller
         }
     }
 
-    private function logAttendanceIfMissing($userId, $timetableId, $date)
-    {
-        $hasLogged = Attendance::where('user_id', $userId)
-            ->where('timetable_id', $timetableId)
-            ->where('date', $date)
-            ->exists();
-
-        if (!$hasLogged) {
-            Attendance::create([
-                'user_id'      => $userId,
-                'timetable_id' => $timetableId,
-                'date'         => $date,
-                'status'       => 'absent',
-                'remark'       => 'Auto-filled via Global Refresh'
-            ]);
-            return 1;
-        }
-        return 0;
-    }
-
     public function getStudentAttendanceReport($studentId, $sectionId): JsonResponse
     {
         $student = Student::with('user')->find($studentId);
