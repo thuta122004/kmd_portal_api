@@ -479,7 +479,7 @@ class AttendanceController extends Controller
             'data' => [
                 'student_name' => $student->user->name,
                 'section_name' => $section->name,
-                'percentage'   => round($percentage, 2),
+                'percentage'   => round($percentage),
                 'attended'     => $attendedClasses,
                 'total'        => $totalClasses
             ]
@@ -513,7 +513,7 @@ class AttendanceController extends Controller
                 'reg_number' => $student->student_reg_number,
                 'attended'   => $attendedClasses,
                 'total'      => $totalClasses,
-                'percentage' => round($percentage, 2)
+                'percentage' => round($percentage)
             ];
 
             if ($percentage <= 25) $distribution['0-25%']++;
@@ -527,7 +527,7 @@ class AttendanceController extends Controller
             'data' => [
                 'list'         => $reportList,
                 'distribution' => $distribution,
-                'overall_avg'  => count($reportList) > 0 ? round(collect($reportList)->avg('percentage'), 2) : 0
+                'overall_avg'  => count($reportList) > 0 ? round(collect($reportList)->avg('percentage')) : 0
             ]
         ]);
     }
@@ -580,6 +580,51 @@ class AttendanceController extends Controller
         return response()->json([
             'status' => 'success',
             'data'   => $report
+        ], 200);
+    }
+
+    public function getSubjectSpecificAttendance($sectionId, $subjectId): JsonResponse
+    {
+        $subject = \App\Models\Subject::find($subjectId);
+        $subjectName = $subject ? $subject->name : 'Unknown Subject';
+
+        $enrolments = Enrolment::where('section_id', $sectionId)
+            ->with('student.user')
+            ->get();
+
+        $attendanceRecords = Attendance::whereHas('timetable.sectionAssignments', function ($query) use ($sectionId, $subjectId) {
+            $query->where('section_id', $sectionId)
+                ->where('subject_id', $subjectId);
+        })->get();
+
+        $report = [];
+
+        foreach ($enrolments as $enrolment) {
+            $student = $enrolment->student;
+            
+            $studentSubjectRecords = $attendanceRecords->where('user_id', $student->user_id);
+            
+            $total = $studentSubjectRecords->count();
+            $attended = $studentSubjectRecords->whereIn('status', ['present', 'excused'])->count();
+            $percentage = ($total > 0) ? round(($attended / $total) * 100) : 0;
+
+            $report[] = [
+                'student_name' => $student->user->name,
+                'reg_number'   => $student->student_reg_number,
+                'attended'     => $attended,
+                'total'        => $total,
+                'percentage'   => $percentage
+            ];
+        }
+
+        usort($report, fn($a, $b) => strcmp($a['student_name'], $b['student_name']));
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => [
+                'subject_name' => $subjectName,
+                'students'     => $report
+            ]
         ], 200);
     }
 }

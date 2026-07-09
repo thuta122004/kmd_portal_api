@@ -37,6 +37,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/sections/{sectionId}/attendance-summary', [AttendanceController::class, 'getSectionAttendanceSummary']);
     Route::get('/sections/{sectionId}/student-subject-attendance', [AttendanceController::class, 'getStudentSubjectAttendanceReport']);
+    Route::get('/sections/{sectionId}/subjects/{subjectId}/attendance-report', [AttendanceController::class, 'getSubjectSpecificAttendance']);
     Route::get('sections/{id}/students', [SectionController::class, 'students']);
     Route::patch('sections/{id}/toggle', [SectionController::class, 'toggleStatus']);
     Route::apiResource('sections', SectionController::class);
