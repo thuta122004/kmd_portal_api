@@ -627,32 +627,4 @@ class AttendanceController extends Controller
             ]
         ], 200);
     }
-
-    public function getStudentSummary($userId)
-    {
-        $logs = Attendance::where('user_id', $userId)
-            ->with(['timetable.sectionAssignments.subject'])
-            ->get();
-
-        $total = $logs->count();
-        $attended = $logs->whereIn('status', ['present', 'excused'])->count();
-        $percentage = ($total > 0) ? round(($attended / $total) * 100) : 0;
-
-        return response()->json([
-            'status' => 'success',
-            'data' => [
-                'total' => $total,
-                'percentage' => $percentage,
-                'logs' => $logs->map(function($log) {
-                    return [
-                        'id' => $log->id,
-                        'date' => $log->date,
-                        'status' => $log->status,
-                        'remark' => $log->remark,
-                        'subject' => $log->timetable->sectionAssignments->subject->name ?? 'N/A'
-                    ];
-                })->sortByDesc('date')->values()
-            ]
-        ]);
-    }
 }
