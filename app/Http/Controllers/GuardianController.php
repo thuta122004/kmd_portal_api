@@ -6,6 +6,7 @@ use App\Models\Guardian;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class GuardianController extends Controller
@@ -133,6 +134,7 @@ class GuardianController extends Controller
                     'students'   => $guardian->students->map(function ($student) {
                         return [
                             'id'                 => $student->id,
+                            'user_id'            => $student->user_id,
                             'name'               => $student->user?->name,
                             'student_reg_number' => $student->student_reg_number,
                             'relationship_type'  => $student->pivot->relationship_type,
@@ -249,7 +251,7 @@ class GuardianController extends Controller
         $hasAttachedStudents = $guardian->students()->exists();
         $newStatus = $hasAttachedStudents ? 'active' : 'inactive';
 
-        \DB::transaction(function () use ($guardian, $newStatus) {
+        DB::transaction(function () use ($guardian, $newStatus) {
             $guardian->status = $newStatus;
             $guardian->save();
 

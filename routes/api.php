@@ -67,6 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('enrolments', EnrolmentController::class);
 
     // Attendances
+    Route::get('/attendances/summary/{userId}', [AttendanceController::class, 'getStudentSummary']);
     Route::post('/attendances/refresh', [AttendanceController::class, 'refreshAbsences']);
     Route::patch('attendances/{id}/toggle', [AttendanceController::class, 'toggleStatus']);
     Route::apiResource('attendances', AttendanceController::class);

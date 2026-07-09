@@ -28,6 +28,7 @@ class EnrolmentController extends Controller
                 'student_reg_number' => $item->student->student_reg_number,
                 'section_id'         => $item->section_id,
                 'section_name'       => $item->section->name,
+                'section_code'       => $item->section->code,
                 'note'               => $item->note,
                 'status'             => $item->status,
                 'created_at'         => $item->created_at->format('Y-m-d H:i:s'),
