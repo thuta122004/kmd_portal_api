@@ -28,7 +28,13 @@ class Student extends Model
                     ->withTimestamps();
     }
 
-    public function enrolments() {
+    public function enrolments()
+    {
         return $this->hasMany(Enrolment::class, 'student_id');
+    }
+
+    public function academicDocuments()
+    {
+        return $this->hasMany(AcademicDocument::class, 'student_id');
     }
 }

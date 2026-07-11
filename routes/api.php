@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AcademicDocumentController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EnrolmentController;
@@ -70,4 +71,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/attendances/refresh', [AttendanceController::class, 'refreshAbsences']);
     Route::patch('attendances/{id}/toggle', [AttendanceController::class, 'toggleStatus']);
     Route::apiResource('attendances', AttendanceController::class);
+
+    // Academic Documents
+    Route::apiResource('academic-documents', AcademicDocumentController::class);
 });
