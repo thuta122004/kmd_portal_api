@@ -99,23 +99,45 @@ class AcademicDocumentController extends Controller
 
         $validator = Validator::make($request->all(), [
             'title'       => 'string|max:255',
-            'is_verified' => 'boolean',
             'file'        => 'nullable|file|mimes:pdf,jpg,png|max:5120',
         ]);
 
         if ($validator->fails()) return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
 
         if ($request->hasFile('file')) {
-            Storage::disk('public')->delete($doc->file_path);
+            if ($doc->file_path && Storage::disk('public')->exists($doc->file_path)) {
+                Storage::disk('public')->delete($doc->file_path);
+            }
             $doc->file_path = $request->file('file')->store('documents', 'public');
         }
 
-        $doc->fill($request->only(['title', 'is_verified']));
+        $doc->fill($request->only(['title']));
         $doc->save();
 
         return response()->json([
             'status'  => 'success',
             'message' => 'Document updated successfully',
+            'data'    => ['document' => $doc]
+        ], 200);
+    }
+
+    public function toggleVerification(Request $request, $id): JsonResponse
+    {
+        $doc = AcademicDocument::find($id);
+        if (!$doc) return response()->json(['status' => 'error', 'message' => 'Not found'], 404);
+
+        $validator = Validator::make($request->all(), [
+            'is_verified' => 'required|boolean',
+        ]);
+
+        if ($validator->fails()) return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+
+        $doc->is_verified = $request->input('is_verified');
+        $doc->save();
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Verification status updated successfully',
             'data'    => ['document' => $doc]
         ], 200);
     }

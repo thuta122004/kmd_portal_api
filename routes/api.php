@@ -73,5 +73,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('attendances', AttendanceController::class);
 
     // Academic Documents
+    Route::put('/academic-documents/{id}/verify', [AcademicDocumentController::class, 'toggleVerification']);
     Route::apiResource('academic-documents', AcademicDocumentController::class);
 });
