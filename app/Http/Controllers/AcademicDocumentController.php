@@ -17,6 +17,10 @@ class AcademicDocumentController extends Controller
 
         if ($request->has('student_id')) {
             $query->where('student_id', $request->student_id);
+        } elseif ($request->has('user_id')) {
+            $query->whereHas('student', function ($q) use ($request) {
+                $q->where('user_id', $request->user_id);
+            });
         }
 
         $documents = $query->get()->map(function ($doc) {
@@ -154,5 +158,23 @@ class AcademicDocumentController extends Controller
         $doc->delete();
 
         return response()->json(['status' => 'success', 'message' => 'Document deleted successfully'], 200);
+    }
+
+    public function download($id)
+    {
+        $doc = AcademicDocument::findOrFail($id);
+
+        $path = storage_path('app/public/' . $doc->file_path);
+
+        if (!file_exists($path)) {
+            abort(404, 'File not found');
+        }
+
+        $mimeType = mime_content_type($path);
+
+        return response()->download($path, $doc->title, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'attachment; filename="' . $doc->title . '"'
+        ]);
     }
 }
