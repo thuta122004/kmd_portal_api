@@ -25,4 +25,9 @@ class Section extends Model
                     ->withPivot('status', 'note')
                     ->withTimestamps();
     }
+
+    public function announcements()
+    {
+        return $this->hasMany(Announcement::class);
+    }
 }

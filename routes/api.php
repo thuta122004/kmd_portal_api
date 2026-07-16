@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AcademicDocumentController;
+use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EnrolmentController;
@@ -76,4 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/academic-documents/{id}/download', [AcademicDocumentController::class, 'download']);
     Route::put('/academic-documents/{id}/verify', [AcademicDocumentController::class, 'toggleVerification']);
     Route::apiResource('academic-documents', AcademicDocumentController::class);
+    // Announcements
+    Route::put('/announcements/{id}/pinned', [AnnouncementController::class, 'togglePinned']);
+    Route::apiResource('announcements', AnnouncementController::class);
 });
