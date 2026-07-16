@@ -170,4 +170,35 @@ class AnnouncementController extends Controller
 
         return response()->json(['status' => 'success', 'message' => 'Announcement deleted successfully'], 200);
     }
+
+    public function getStudentFeed(Request $request)
+    {
+        $student = $request->user()->student;
+        $sectionIds = $student->enrolments()->pluck('section_id')->toArray();
+
+        $announcements = Announcement::with('section')
+            ->whereNull('section_id')
+            ->orWhereIn('section_id', $sectionIds)
+            ->orderBy('is_pinned', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($announcement) {
+                return [
+                    'id'           => $announcement->id,
+                    'section_id'   => $announcement->section_id,
+                    'section_name' => $announcement->section ? $announcement->section->name : 'Global',
+                    'title'        => $announcement->title,
+                    'content'      => $announcement->content,
+                    'banner_url'   => $announcement->banner_photo ? asset('storage/' . $announcement->banner_photo) : null,
+                    'is_pinned'    => $announcement->is_pinned,
+                    'created_at'   => $announcement->created_at->format('Y-m-d H:i:s'),
+                ];
+            });
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Announcements retrieved successfully',
+            'data'    => ['announcements' => $announcements]
+        ], 200);
+    }
 }
