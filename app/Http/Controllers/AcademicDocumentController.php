@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\JsonResponse;
+use App\Models\Notification;
 use Exception;
 
 class AcademicDocumentController extends Controller
@@ -21,6 +22,10 @@ class AcademicDocumentController extends Controller
             $query->whereHas('student', function ($q) use ($request) {
                 $q->where('user_id', $request->user_id);
             });
+        }
+
+        if ($request->has('is_verified')) {
+            $query->where('is_verified', $request->boolean('is_verified'));
         }
 
         $documents = $query->get()->map(function ($doc) {
@@ -65,6 +70,14 @@ class AcademicDocumentController extends Controller
                 'title'         => $request->title,
                 'file_path'     => $path,
                 'is_verified'   => false,
+            ]);
+
+            $document->load('student.user');
+
+            Notification::create([
+                'user_id' => $document->student->user->id,
+                'title'   => 'Academic Document Uploaded',
+                'content' => "Your document '{$document->title}' has been uploaded successfully.",
             ]);
 
             return response()->json([
@@ -118,6 +131,14 @@ class AcademicDocumentController extends Controller
         $doc->fill($request->only(['title']));
         $doc->save();
 
+        $doc->load('student.user');
+
+        Notification::create([
+            'user_id' => $doc->student->user->id,
+            'title'   => 'Academic Document Updated',
+            'content' => "Your document '{$doc->title}' details have been updated.",
+        ]);
+
         return response()->json([
             'status'  => 'success',
             'message' => 'Document updated successfully',
@@ -156,6 +177,19 @@ class AcademicDocumentController extends Controller
 
         Storage::disk('public')->delete($doc->file_path);
         $doc->delete();
+
+        $doc->load('student.user');
+        $studentUserId = $doc->student->user->id;
+        $documentTitle = $doc->title;
+
+        Storage::disk('public')->delete($doc->file_path);
+        $doc->delete();
+
+        Notification::create([
+            'user_id' => $studentUserId,
+            'title'   => 'Academic Document Deleted',
+            'content' => "Your document '{$documentTitle}' has been removed.",
+        ]);
 
         return response()->json(['status' => 'success', 'message' => 'Document deleted successfully'], 200);
     }
