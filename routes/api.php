@@ -7,6 +7,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EnrolmentController;
 use App\Http\Controllers\GuardianController;
 use App\Http\Controllers\LecturerController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\SectionAssignmentController;
 use App\Http\Controllers\StudentController;
@@ -78,8 +79,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/academic-documents/{id}/download', [AcademicDocumentController::class, 'download']);
     Route::put('/academic-documents/{id}/verify', [AcademicDocumentController::class, 'toggleVerification']);
     Route::apiResource('academic-documents', AcademicDocumentController::class);
-    
+
     // Announcements
     Route::put('/announcements/{id}/pinned', [AnnouncementController::class, 'togglePinned']);
     Route::apiResource('announcements', AnnouncementController::class);
+
+    // Notifications
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::patch('/notifications/read', [NotificationController::class, 'markAsRead']);
 });
