@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use App\Models\Notification;
+use App\Models\Student;
 use Exception;
 
 class GuardianController extends Controller
@@ -227,6 +229,21 @@ class GuardianController extends Controller
 
         $this->syncGuardianProfileStatus($guardian);
 
+        $guardian->load('user');
+        $student = Student::with('user')->findOrFail($request->student_id);
+
+        Notification::create([
+            'user_id' => $guardian->user->id,
+            'title'   => 'Student Linked Successfully',
+            'content' => "{$student->user->name} has been linked to your profile as a {$request->relationship_type}.",
+        ]);
+
+        Notification::create([
+            'user_id' => $student->user->id,
+            'title'   => 'Guardian Linked Successfully',
+            'content' => "{$guardian->user->name} has been linked to your profile as your guardian.",
+        ]);
+
         return response()->json(['status' => 'success', 'message' => 'Student linked successfully.']);
     }
 
@@ -237,6 +254,21 @@ class GuardianController extends Controller
         $guardian->students()->detach($studentId);
 
         $this->syncGuardianProfileStatus($guardian);
+
+        $guardian->load('user');
+        $student = Student::with('user')->findOrFail($studentId);
+
+        Notification::create([
+            'user_id' => $guardian->user->id,
+            'title'   => 'Student Profile Unlinked',
+            'content' => "{$student->user->name} has been unlinked from your profile.",
+        ]);
+
+        Notification::create([
+            'user_id' => $student->user->id,
+            'title'   => 'Guardian Profile Unlinked',
+            'content' => "{$guardian->user->name} has been unlinked from your profile.",
+        ]);
 
         return response()->json([
             'status' => 'success', 
