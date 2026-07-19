@@ -69,4 +69,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(Guardian::class, 'user_id');
     }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class)->orderBy('created_at', 'desc');
+    }
 }

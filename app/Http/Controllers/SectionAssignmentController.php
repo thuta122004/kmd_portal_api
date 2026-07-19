@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use App\Models\Notification;
 
 class SectionAssignmentController extends Controller
 {
@@ -30,6 +31,7 @@ class SectionAssignmentController extends Controller
                 'subject_id'    => $item->subject->id,
                 'subject_code'  => $item->subject->code,
                 'lecturer_name' => $item->lecturer->user->name,
+                'lecturer_email' => $item->lecturer->user->email,
                 'lecturer_id'   => $item->lecturer->id,
                 'is_primary'    => (bool) $item->is_primary,
                 'status'        => $item->status,
@@ -111,6 +113,12 @@ class SectionAssignmentController extends Controller
 
         $assignment->load(['section', 'subject', 'lecturer.user']);
 
+        Notification::create([
+            'user_id' => $assignment->lecturer->user->id,
+            'title'   => 'New Section Assignment',
+            'content' => "You have been assigned to teach {$assignment->subject->name} for section {$assignment->section->name}.",
+        ]);
+
         return response()->json([
             'status'  => 'success',
             'message' => 'Lecturer assigned to subject and section successfully',
@@ -159,6 +167,7 @@ class SectionAssignmentController extends Controller
     public function update(Request $request, $id): JsonResponse
     {
         $assignment = SectionAssignment::find($id);
+        $oldLecturer = $assignment->lecturer;
 
         if (!$assignment) {
             return response()->json([
@@ -248,6 +257,26 @@ class SectionAssignmentController extends Controller
 
         $assignment->load(['section', 'subject', 'lecturer.user']);
 
+        if ($request->has('lecturer_id') && $oldLecturer->id != $assignment->lecturer_id) {
+            Notification::create([
+                'user_id' => $oldLecturer->user->id,
+                'title'   => 'Section Assignment Removed',
+                'content' => "You are no longer assigned to teach {$assignment->subject->name} for section {$assignment->section->name}.",
+            ]);
+
+            Notification::create([
+                'user_id' => $assignment->lecturer->user->id,
+                'title'   => 'New Section Assignment',
+                'content' => "You have been assigned to teach {$assignment->subject->name} for section {$assignment->section->name}.",
+            ]);
+        } else {
+            Notification::create([
+                'user_id' => $assignment->lecturer->user->id,
+                'title'   => 'Section Assignment Updated',
+                'content' => "Your teaching assignment details for {$assignment->subject->name} in section {$assignment->section->name} have been updated.",
+            ]);
+        }
+
         return response()->json([
             'status'  => 'success',
             'message' => 'Section Assignment updated successfully',
@@ -298,6 +327,14 @@ class SectionAssignmentController extends Controller
         $assignment->save();
 
         $this->syncLecturerProfileStatus($assignment->lecturer_id);
+
+        $assignment->load(['section', 'subject', 'lecturer.user']);
+
+        Notification::create([
+            'user_id' => $assignment->lecturer->user->id,
+            'title'   => 'Assignment Status Changed',
+            'content' => "Your assignment for {$assignment->subject->name} in section {$assignment->section->name} is now {$assignment->status}.",
+        ]);
 
         return response()->json([
             'status'  => 'success',
