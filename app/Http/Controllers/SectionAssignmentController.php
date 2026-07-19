@@ -332,7 +332,7 @@ class SectionAssignmentController extends Controller
 
         Notification::create([
             'user_id' => $assignment->lecturer->user->id,
-            'title'   => 'Assignment Status Changed',
+            'title'   => 'Section Assignment Status Changed',
             'content' => "Your assignment for {$assignment->subject->name} in section {$assignment->section->name} is now {$assignment->status}.",
         ]);
 

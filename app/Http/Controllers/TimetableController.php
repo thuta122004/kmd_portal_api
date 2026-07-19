@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
+use App\Models\Notification;
 
 class TimetableController extends Controller
 {
@@ -126,6 +127,17 @@ class TimetableController extends Controller
         ]);
 
         $timetable->refresh();
+
+        $timetable->load(['sectionAssignments.section', 'sectionAssignments.subject', 'sectionAssignments.lecturer.user']);
+
+        $startTime12 = \Illuminate\Support\Carbon::parse($timetable->start_time)->format('g:i A');
+        $endTime12 = \Illuminate\Support\Carbon::parse($timetable->end_time)->format('g:i A');
+
+        Notification::create([
+            'user_id' => $timetable->sectionAssignments->lecturer->user->id,
+            'title'   => 'New Timetable Slot Added',
+            'content' => "A new timetable slot has been scheduled for {$timetable->sectionAssignments->subject->name} ({$timetable->sectionAssignments->section->name}) on {$startTime12} from {$timetable->startTime12} to {$endTime12}.",
+        ]);
 
         return response()->json([
             'status'  => 'success',
@@ -268,6 +280,14 @@ class TimetableController extends Controller
             'link'                  => $request->input('link', $timetable->link),
         ]);
 
+        $timetable->load(['sectionAssignments.section', 'sectionAssignments.subject', 'sectionAssignments.lecturer.user']);
+
+        Notification::create([
+            'user_id' => $timetable->sectionAssignments->lecturer->user->id,
+            'title'   => 'Timetable Details Updated',
+            'content' => "The timetable slot details for {$timetable->sectionAssignments->subject->name} in {$timetable->sectionAssignments->section->name} have been updated.",
+        ]);
+
         return response()->json([
             'status'  => 'success',
             'message' => 'Timetable updated successfully',
@@ -344,6 +364,14 @@ class TimetableController extends Controller
 
         $timetable->status = $targetStatus;
         $timetable->save();
+
+        $timetable->load(['sectionAssignments.section', 'sectionAssignments.subject', 'sectionAssignments.lecturer.user']);
+
+        Notification::create([
+            'user_id' => $timetable->sectionAssignments->lecturer->user->id,
+            'title'   => 'Timetable Status Changed',
+            'content' => "Your timetable slot for {$timetable->sectionAssignments->subject->name} in {$timetable->sectionAssignments->section->name} is now {$timetable->status}.",
+        ]);
 
         return response()->json([
             'status'  => 'success',
