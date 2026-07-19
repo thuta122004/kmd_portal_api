@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rule;
+use App\Models\Notification;
 use Exception;
 
 class EnrolmentController extends Controller
@@ -81,6 +82,12 @@ class EnrolmentController extends Controller
             $this->syncStudentProfileStatus($enrolment->student_id);
 
             $enrolment->load(['student.user', 'section']);
+
+            Notification::create([
+                'user_id' => $enrolment->student->user->id,
+                'title'   => 'New Section Enrolment',
+                'content' => "You have been successfully enrolled into section {$enrolment->section->name}.",
+            ]);
 
             return response()->json([
                 'status'  => 'success',
@@ -230,6 +237,14 @@ class EnrolmentController extends Controller
         $enrolment->save();
 
         $this->syncStudentProfileStatus($enrolment->student_id);
+
+        $enrolment->load(['student.user', 'section']);
+
+        Notification::create([
+            'user_id' => $enrolment->student->user->id,
+            'title'   => 'Enrolment Status Updated',
+            'content' => "Your enrolment status for section {$enrolment->section->name} has been changed to {$enrolment->status}.",
+        ]);
 
         return response()->json([
             'status'  => 'success',
