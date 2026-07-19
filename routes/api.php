@@ -78,6 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/academic-documents/{id}/download', [AcademicDocumentController::class, 'download']);
     Route::put('/academic-documents/{id}/verify', [AcademicDocumentController::class, 'toggleVerification']);
     Route::apiResource('academic-documents', AcademicDocumentController::class);
+    
     // Announcements
     Route::put('/announcements/{id}/pinned', [AnnouncementController::class, 'togglePinned']);
     Route::apiResource('announcements', AnnouncementController::class);

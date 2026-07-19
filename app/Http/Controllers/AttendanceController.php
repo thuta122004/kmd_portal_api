@@ -8,11 +8,13 @@ use App\Models\Timetable;
 use App\Models\Student;
 use App\Models\Section;
 use App\Models\Lecturer;
+use App\Models\Subject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Models\Notification;
 use Exception;
 
 class AttendanceController extends Controller
@@ -211,6 +213,22 @@ class AttendanceController extends Controller
             $attendance->save();
             $attendance->load(['user', 'timetable']);
 
+            $student = Student::with('guardians.user')->where('user_id', $attendance->user_id)->first();
+            if ($student) {
+                $attendance->load(['timetable.sectionAssignments.subject']);
+                $subjectName = $attendance->timetable->sectionAssignments->subject->name ?? 'Class';
+
+                foreach ($student->guardians as $guardian) {
+                    if ($guardian->user) {
+                        Notification::create([
+                            'user_id' => $guardian->user->id,
+                            'title'   => 'Attendance Recorded',
+                            'content' => "Attendance recorded: {$attendance->user->name} was marked {$attendance->status} for {$subjectName} on {$attendance->date}.",
+                        ]);
+                    }
+                }
+            }
+
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Attendance logged successfully with auto-calculated status',
@@ -287,11 +305,32 @@ class AttendanceController extends Controller
         $request->validate([
             'status' => 'required|in:present,absent,late,excused',
             'remark' => 'nullable|string',
+            'source' => 'nullable|string|in:student,guardian',
         ]);
 
         $attendance->status = $request->status;
         $attendance->remark = $request->remark;
         $attendance->save();
+
+        if ($request->input('source') === 'student') {
+            $attendance->load(['user', 'timetable.sectionAssignments.subject']);
+
+            $student = Student::with('guardians.user')->where('user_id', $attendance->user_id)->first();
+            if ($student) {
+                $subjectName = $attendance->timetable->sectionAssignments->subject->name ?? 'Class';
+                $remarkText = $attendance->remark ? " Remark: {$attendance->remark}" : "";
+
+                foreach ($student->guardians as $guardian) {
+                    if ($guardian->user) {
+                        Notification::create([
+                            'user_id' => $guardian->user->id,
+                            'title'   => 'Attendance Updated',
+                            'content' => "Attendance updated: {$attendance->user->name} is now marked {$attendance->status} for {$subjectName} on {$attendance->date}.{$remarkText}",
+                        ]);
+                    }
+                }
+            }
+        }
 
         return response()->json([
             'status' => 'success',
@@ -329,6 +368,23 @@ class AttendanceController extends Controller
 
         $attendance->save();
 
+        $attendance->load(['timetable.sectionAssignments.subject']);
+
+        $student = Student::with('guardians.user')->where('user_id', $attendance->user_id)->first();
+        if ($student) {
+            $subjectName = $attendance->timetable->sectionAssignments->subject->name ?? 'Class';
+
+            foreach ($student->guardians as $guardian) {
+                if ($guardian->user) {
+                    Notification::create([
+                        'user_id' => $guardian->user->id,
+                        'title'   => 'Attendance Status Changed',
+                        'content' => "Attendance updated: {$attendance->user->name} status has been changed to {$attendance->status} for {$subjectName} on {$attendance->date}.",
+                    ]);
+                }
+            }
+        }
+
         return response()->json([
             'status'  => 'success',
             'message' => "Attendance status rotated to {$attendance->status}",
@@ -353,20 +409,20 @@ class AttendanceController extends Controller
             $startDate = $request->has('start_date') ? Carbon::parse($request->start_date) : Carbon::now();
             $today = Carbon::now();
 
-            if ($startDate->diffInDays($today) > 30) {
-                return response()->json(['status' => 'error', 'message' => 'Cannot refresh more than 30 days at once.'], 422);
+            if ($startDate->diffInDays($today) > 60) {
+                return response()->json(['status' => 'error', 'message' => 'Cannot refresh more than 60 days at once.'], 422);
             }
 
             $totalAbsencesLogged = 0;
 
-            for ($date = $startDate; $date->lte($today); $date->addDay()) {
-                
+            for ($date = $startDate->copy(); $date->lte($today); $date->addDay()) {
+
                 $dateString = $date->toDateString();
                 $dayName = $date->format('l');
 
                 $timetables = Timetable::where('day_of_week', $dayName)
                     ->where('status', 'active')
-                    ->with('sectionAssignments.section', 'sectionAssignments.lecturer.user')
+                    ->with(['sectionAssignments.section', 'sectionAssignments.lecturer.user', 'sectionAssignments.subject'])
                     ->get();
 
                 foreach ($timetables as $timetable) {
@@ -375,6 +431,10 @@ class AttendanceController extends Controller
 
                     $section = $assignment->section;
                     if ($date->lt(Carbon::parse($section->start_date)) || $date->gt(Carbon::parse($section->end_date))) {
+                        continue;
+                    }
+
+                    if ($date->lt(Carbon::parse($timetable->created_at)->startOfDay())) {
                         continue;
                     }
 
@@ -392,7 +452,9 @@ class AttendanceController extends Controller
                         ->where('status', 'active')
                         ->pluck('student_id');
 
-                    $enrolledStudents = Student::whereIn('id', $studentIds)->get();
+                    $enrolledStudents = Student::whereIn('id', $studentIds)
+                        ->with(['user', 'guardians.user'])
+                        ->get();
 
                     foreach ($enrolledStudents as $student) {
                         if (!in_array($student->user_id, $existingUserIds)) {
@@ -404,6 +466,19 @@ class AttendanceController extends Controller
                                 'remark'       => 'Auto-filled via Global Refresh'
                             ]);
                             $totalAbsencesLogged++;
+
+                            $subjectName = $timetable->sectionAssignments->subject->name ?? 'Class';
+                            $studentName = $student->user->name ?? 'Your student';
+
+                            foreach ($student->guardians as $guardian) {
+                                if ($guardian->user) {
+                                    Notification::create([
+                                        'user_id' => $guardian->user->id,
+                                        'title'   => 'Automated Absence Recorded',
+                                        'content' => "Attendance notice: {$studentName} was marked absent for {$subjectName} on {$dateString} via global refresh.",
+                                    ]);
+                                }
+                            }
                         }
                     }
 
@@ -428,7 +503,6 @@ class AttendanceController extends Controller
                 'message' => 'Attendance evaluation completed from ' . $startDate->toDateString() . ' to ' . $today->toDateString(),
                 'data' => ['total_no_shows_auto_filled' => $totalAbsencesLogged]
             ], 200);
-
         } catch (Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
@@ -565,7 +639,7 @@ class AttendanceController extends Controller
 
     public function getSubjectSpecificAttendance($sectionId, $subjectId): JsonResponse
     {
-        $subject = \App\Models\Subject::find($subjectId);
+        $subject = Subject::find($subjectId);
         $subjectName = $subject ? $subject->name : 'Unknown Subject';
 
         $enrolments = Enrolment::where('section_id', $sectionId)
