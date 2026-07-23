@@ -74,4 +74,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Notification::class)->orderBy('created_at', 'desc');
     }
+
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class, 'timetable_id');
+    }
 }

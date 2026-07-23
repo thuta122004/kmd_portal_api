@@ -30,4 +30,9 @@ class Section extends Model
     {
         return $this->hasMany(Announcement::class);
     }
+
+    public function enrolments()
+    {
+        return $this->hasMany(Enrolment::class, 'student_id');
+    }
 }
